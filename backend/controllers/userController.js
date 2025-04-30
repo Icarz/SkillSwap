@@ -13,11 +13,11 @@ const getProfile = async (req, res) => {
 
 // Update current user profile
 const updateProfile = async (req, res) => {
-  const { name, bio, skills } = req.body;
+  const { name, bio, skills, learning } = req.body;
   try {
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { name, bio, skills },
+      { name, bio, skills, learning },
       { new: true }
     ).select("-password");
     res.json(user);
@@ -33,11 +33,15 @@ const searchUsers = async (req, res) => {
   if (!skillQuery) {
     return res
       .status(400)
-      .json({ error: "Skills query parameter is required (e.g. ?skills=react,node)" });
+      .json({
+        error: "Skills query parameter is required (e.g. ?skills=react,node)",
+      });
   }
 
   // Parse and normalize skill query
-  const searchSkills = skillQuery.split(",").map(skill => skill.trim().toLowerCase());
+  const searchSkills = skillQuery
+    .split(",")
+    .map((skill) => skill.trim().toLowerCase());
 
   try {
     const users = await User.find().select("-password");
@@ -51,7 +55,7 @@ const searchUsers = async (req, res) => {
     // Perform fuzzy search for each skill, collect results
     let allResults = [];
 
-    searchSkills.forEach(skill => {
+    searchSkills.forEach((skill) => {
       const results = fuse.search(skill);
       allResults.push(...results);
     });
@@ -61,7 +65,11 @@ const searchUsers = async (req, res) => {
 
     allResults.forEach(({ item, score }) => {
       if (!userMap.has(item._id.toString())) {
-        userMap.set(item._id.toString(), { user: item, totalScore: score, matches: 1 });
+        userMap.set(item._id.toString(), {
+          user: item,
+          totalScore: score,
+          matches: 1,
+        });
       } else {
         const existing = userMap.get(item._id.toString());
         existing.totalScore += score;
@@ -77,7 +85,7 @@ const searchUsers = async (req, res) => {
         }
         return b.matches - a.matches;
       })
-      .map(entry => entry.user);
+      .map((entry) => entry.user);
 
     res.json(rankedUsers);
   } catch (err) {
@@ -86,9 +94,31 @@ const searchUsers = async (req, res) => {
   }
 };
 
-// ✅ Properly export all together
+// 🔁 Matchmaking logic
+const findMatches = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const users = await User.find({
+      _id: { $ne: currentUser._id }, // exclude self
+      skills: { $in: currentUser.learning },
+      learning: { $in: currentUser.skills },
+    }).select("-password");
+
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error while finding matches" });
+  }
+};
+
+// ✅ Export all
 module.exports = {
   getProfile,
   updateProfile,
   searchUsers,
+  findMatches,
 };

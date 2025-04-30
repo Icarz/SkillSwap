@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 const register = async (req, res) => {
-  const { name, email, password, skills, bio } = req.body; // requesting data from the body //
+  const { name, email, password, skills, bio,learning } = req.body; // requesting data from the body //
    // verification if the user is already in database //
   try {
     const existingUser = await User.findOne({ email }); // mongoose method//
@@ -16,7 +16,8 @@ const register = async (req, res) => {
       email,
       password,
       skills,
-      bio
+      bio,
+      learning
     });
 
     await newUser.save(); // saving the user//
@@ -32,6 +33,7 @@ const register = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         skills: newUser.skills,
+        learning:newUser.learning,
         bio: newUser.bio
       }
     });
@@ -61,6 +63,7 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         skills: user.skills,
+        learning:user.learning,
         bio: user.bio
       }
     });

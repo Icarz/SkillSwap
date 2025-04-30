@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  learning: {
+    type: [String],        // Skills the user wants to learn
+    default: []
+  },
   bio: {
     type: String,
     default: ''
