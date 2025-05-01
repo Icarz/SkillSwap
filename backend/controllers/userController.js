@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Review = require("../models/Review"); // Make sure you create this model
 const Fuse = require("fuse.js");
 
 // Get current user profile
@@ -38,7 +39,6 @@ const searchUsers = async (req, res) => {
       });
   }
 
-  // Parse and normalize skill query
   const searchSkills = skillQuery
     .split(",")
     .map((skill) => skill.trim().toLowerCase());
@@ -52,15 +52,12 @@ const searchUsers = async (req, res) => {
       includeScore: true,
     });
 
-    // Perform fuzzy search for each skill, collect results
     let allResults = [];
-
     searchSkills.forEach((skill) => {
       const results = fuse.search(skill);
       allResults.push(...results);
     });
 
-    // Group by user ID and aggregate scores
     const userMap = new Map();
 
     allResults.forEach(({ item, score }) => {
@@ -77,7 +74,6 @@ const searchUsers = async (req, res) => {
       }
     });
 
-    // Convert back to array and sort by best match (lowest total score, most matches)
     const rankedUsers = Array.from(userMap.values())
       .sort((a, b) => {
         if (b.matches === a.matches) {
@@ -94,7 +90,7 @@ const searchUsers = async (req, res) => {
   }
 };
 
-// 🔁 Matchmaking logic
+// Matchmaking logic
 const findMatches = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id);
@@ -103,7 +99,7 @@ const findMatches = async (req, res) => {
     }
 
     const users = await User.find({
-      _id: { $ne: currentUser._id }, // exclude self
+      _id: { $ne: currentUser._id },
       skills: { $in: currentUser.learning },
       learning: { $in: currentUser.skills },
     }).select("-password");
@@ -115,10 +111,57 @@ const findMatches = async (req, res) => {
   }
 };
 
+// Leave a review for another user
+const createReview = async (req, res) => {
+  const { reviewedUserId, rating, comment } = req.body;
+
+  if (!reviewedUserId || !rating || !comment) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const reviewedUser = await User.findById(reviewedUserId);
+    if (!reviewedUser) {
+      return res.status(404).json({ error: "Reviewed user not found" });
+    }
+
+    const review = new Review({
+      reviewer: req.user.id,
+      reviewedUser: reviewedUserId,
+      rating,
+      comment,
+    });
+
+    await review.save();
+    res.json({ message: "Review submitted", review });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error submitting review" });
+  }
+};
+
+// Get all reviews for a user
+const getReviews = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const reviews = await Review.find({ reviewedUser: userId })
+      .populate("reviewer", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(reviews);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching reviews" });
+  }
+};
+
 // ✅ Export all
 module.exports = {
   getProfile,
   updateProfile,
   searchUsers,
   findMatches,
+  createReview,
+  getReviews,
 };

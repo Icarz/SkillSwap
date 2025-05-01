@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const transactionRoutes = require('./routes/transactionRoute');
 
 // initialize the app //
 dotenv.config();
@@ -12,6 +13,7 @@ const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/transactions', transactionRoutes);
 app.use(cors());
 //--------------------------------//
 
