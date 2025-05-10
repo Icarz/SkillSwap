@@ -1,28 +1,24 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const skillSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    lowercase:true
   },
   category: {
     type: String,
-    default: ''
+    default: "",
   },
   description: {
     type: String,
-    default: ''
-  },
-  userID: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    default: "",
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Skill', skillSchema);
+module.exports = mongoose.model("Skill", skillSchema);
