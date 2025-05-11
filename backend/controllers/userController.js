@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Review = require("../models/Review"); // Make sure you create this model
 const Fuse = require("fuse.js");
+const Skill = require("../models/Skill")
 
 // Get current user profile
 const getProfile = async (req, res) => {
@@ -31,16 +32,59 @@ const getUserById = async (req, res) => {
 
 // Update current user profile
 const updateProfile = async (req, res) => {
-  const { name, bio, skills, learning } = req.body;
   try {
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, bio, skills, learning },
+    const userId = req.user.id;
+    const updateData = {};
+
+    // Handle bio
+    if (req.body.bio) {
+      updateData.bio = req.body.bio;
+    }
+
+    // Handle skills (create new ones if they don’t exist)
+    if (Array.isArray(req.body.skills)) {
+      const skillIds = [];
+      for (const name of req.body.skills) {
+        let skill = await Skill.findOne({ name });
+
+        if (!skill) {
+          skill = await Skill.create({ name });
+        }
+
+        skillIds.push(skill._id);
+      }
+      updateData.skills = skillIds;
+    }
+
+    // Handle learning (same logic as skills)
+    if (Array.isArray(req.body.learning)) {
+      const learningIds = [];
+      for (const name of req.body.learning) {
+        let skill = await Skill.findOne({ name });
+
+        if (!skill) {
+          skill = await Skill.create({ name });
+        }
+
+        learningIds.push(skill._id);
+      }
+      updateData.learning = learningIds;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
       { new: true }
-    ).select("-password");
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ error: "Could not update profile" });
+    ).populate('skills learning');
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Update profile error:', error.message);
+    res.status(500).json({ error: 'Could not update profile' });
   }
 };
 
