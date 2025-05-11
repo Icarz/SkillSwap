@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getProfile,
   updateProfile,
+  getUserById,
   searchUsers,
   findMatches,
   createReview,
@@ -11,6 +12,7 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/me", authMiddleware, getProfile);
+router.get("/users/:userId", authMiddleware, getUserById);
 router.put("/me", authMiddleware, updateProfile);
 router.get("/search", searchUsers);
 router.get("/matches", authMiddleware, findMatches);
