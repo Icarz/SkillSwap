@@ -12,7 +12,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // 🔄 Convert skill names to ObjectIds
+    // Convert skill names to ObjectIds (keep existing logic)
     const convertToSkillIds = async (skillNames) => {
       const skillIds = [];
       for (const name of skillNames) {
@@ -29,8 +29,6 @@ const register = async (req, res) => {
     const skillIds = await convertToSkillIds(skills);
     const learningIds = await convertToSkillIds(learning);
 
-    
-
     const newUser = new User({
       name,
       email,
@@ -42,6 +40,10 @@ const register = async (req, res) => {
 
     await newUser.save();
 
+    // 🔥 Key Change: Populate skills and learning before responding
+    const populatedUser = await User.findById(newUser._id)
+      .populate('skills learning', 'name');
+
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: '7d'
     });
@@ -49,12 +51,12 @@ const register = async (req, res) => {
     res.status(201).json({
       token,
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        skills: newUser.skills,
-        learning: newUser.learning,
-        bio: newUser.bio
+        id: populatedUser._id,
+        name: populatedUser.name,
+        email: populatedUser.email,
+        skills: populatedUser.skills, // Now with names
+        learning: populatedUser.learning, // Now with names
+        bio: populatedUser.bio
       }
     });
   } catch (error) {

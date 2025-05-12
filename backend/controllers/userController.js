@@ -1,223 +1,181 @@
 const User = require("../models/User");
-const Review = require("../models/Review"); // Make sure you create this model
+const Review = require("../models/Review");
 const Fuse = require("fuse.js");
-const Skill = require("../models/Skill")
+const Skill = require("../models/Skill");
 
 // Get current user profile
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .populate("skills learning", "name");
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
+    console.error("[getProfile] Error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };
 
 // Get another user's public profile by ID
 const getUserById = async (req, res) => {
-  const { userId } = req.params;
-
   try {
-    const user = await User.findById(userId).select("-password");
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
+    const user = await User.findById(req.params.userId)
+      .select("-password")
+      .populate("skills learning", "name");
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
+    console.error("[getUserById] Error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 // Update current user profile
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
     const updateData = {};
+    const { bio, skills, learning } = req.body;
 
-    // Handle bio
-    if (req.body.bio) {
-      updateData.bio = req.body.bio;
-    }
+    if (bio) updateData.bio = bio;
 
-    // Handle skills (create new ones if they don’t exist)
-    if (Array.isArray(req.body.skills)) {
-      const skillIds = [];
-      for (const name of req.body.skills) {
-        let skill = await Skill.findOne({ name });
+    // Case-insensitive skill/learning handling with bulk operations
+    const processSkills = async (arr, field) => {
+      if (!Array.isArray(arr)) return;
+      
+      const skillIds = await Promise.all(
+        arr.map(async (name) => {
+          const skill = await Skill.findOneAndUpdate(
+            { name: { $regex: new RegExp(`^${name}$`, "i") } },
+            { $setOnInsert: { name } },
+            { upsert: true, new: true }
+          );
+          return skill._id;
+        })
+      );
+      
+      updateData[field] = skillIds;
+    };
 
-        if (!skill) {
-          skill = await Skill.create({ name });
-        }
-
-        skillIds.push(skill._id);
-      }
-      updateData.skills = skillIds;
-    }
-
-    // Handle learning (same logic as skills)
-    if (Array.isArray(req.body.learning)) {
-      const learningIds = [];
-      for (const name of req.body.learning) {
-        let skill = await Skill.findOne({ name });
-
-        if (!skill) {
-          skill = await Skill.create({ name });
-        }
-
-        learningIds.push(skill._id);
-      }
-      updateData.learning = learningIds;
-    }
+    await Promise.all([
+      processSkills(skills, "skills"),
+      processSkills(learning, "learning")
+    ]);
 
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
+      req.user.id,
       { $set: updateData },
       { new: true }
-    ).populate('skills learning');
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    ).populate("skills learning", "name");
 
     res.json(updatedUser);
-  } catch (error) {
-    console.error('Update profile error:', error.message);
-    res.status(500).json({ error: 'Could not update profile' });
-  }
-};
-
-// Searching users by skill
-const searchUsers = async (req, res) => {
-  const skillQuery = req.query.skills;
-
-  if (!skillQuery) {
-    return res
-      .status(400)
-      .json({
-        error: "Skills query parameter is required (e.g. ?skills=react,node)",
-      });
-  }
-
-  const searchSkills = skillQuery
-    .split(",")
-    .map((skill) => skill.trim().toLowerCase());
-
-  try {
-    const users = await User.find().select("-password");
-
-    const fuse = new Fuse(users, {
-      keys: ["skills"],
-      threshold: 0.4,
-      includeScore: true,
-    });
-
-    let allResults = [];
-    searchSkills.forEach((skill) => {
-      const results = fuse.search(skill);
-      allResults.push(...results);
-    });
-
-    const userMap = new Map();
-
-    allResults.forEach(({ item, score }) => {
-      if (!userMap.has(item._id.toString())) {
-        userMap.set(item._id.toString(), {
-          user: item,
-          totalScore: score,
-          matches: 1,
-        });
-      } else {
-        const existing = userMap.get(item._id.toString());
-        existing.totalScore += score;
-        existing.matches += 1;
-      }
-    });
-
-    const rankedUsers = Array.from(userMap.values())
-      .sort((a, b) => {
-        if (b.matches === a.matches) {
-          return a.totalScore - b.totalScore;
-        }
-        return b.matches - a.matches;
-      })
-      .map((entry) => entry.user);
-
-    res.json(rankedUsers);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error("[updateProfile] Error:", err.message);
+    res.status(500).json({ error: "Profile update failed" });
   }
 };
 
-// Matchmaking logic
+// Search users by skills (with MongoDB pre-filter)
+const searchUsers = async (req, res) => {
+  try {
+    const skillQuery = req.query.skills;
+    if (!skillQuery) {
+      return res.status(400).json({ error: "?skills=react,node parameter required" });
+    }
+
+    const searchSkills = skillQuery.split(",").map(s => s.trim().toLowerCase());
+
+    // 1. First find skills that match the search terms
+    const matchedSkills = await Skill.find({
+      name: { $in: searchSkills }
+    });
+
+    if (matchedSkills.length === 0) {
+      return res.json([]); // No matching skills found
+    }
+
+    // 2. Find users who have ANY of the matched skill IDs
+    const users = await User.find({
+      skills: { $in: matchedSkills.map(s => s._id) }
+    })
+      .select("-password")
+      .populate("skills", "name"); // Populate skill names
+
+    // 3. Format for response
+    const results = users.map(user => ({
+      ...user.toObject(),
+      matchedSkills: user.skills.filter(skill => 
+        searchSkills.includes(skill.name.toLowerCase())
+      )
+    }));
+
+    res.json(results);
+
+  } catch (err) {
+    console.error("[searchUsers] Error:", err);
+    res.status(500).json({ error: "Search failed" });
+  }
+};
+
+// Matchmaking with pagination
 const findMatches = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id);
-    if (!currentUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!currentUser) return res.status(404).json({ error: "User not found" });
 
     const users = await User.find({
       _id: { $ne: currentUser._id },
       skills: { $in: currentUser.learning },
-      learning: { $in: currentUser.skills },
-    }).select("-password");
+      learning: { $in: currentUser.skills }
+    })
+      .select("-password")
+      .populate("skills learning", "name")
+      .limit(20); // Pagination
 
     res.json(users);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error while finding matches" });
+    console.error("[findMatches] Error:", err.message);
+    res.status(500).json({ error: "Matchmaking failed" });
   }
 };
 
-// Leave a review for another user
+// Leave a review
 const createReview = async (req, res) => {
-  const { reviewedUserId, rating, comment } = req.body;
-
-  if (!reviewedUserId || !rating || !comment) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
   try {
-    const reviewedUser = await User.findById(reviewedUserId);
-    if (!reviewedUser) {
-      return res.status(404).json({ error: "Reviewed user not found" });
+    const { reviewedUserId, rating, comment } = req.body;
+    if (!reviewedUserId || !rating || !comment) {
+      return res.status(400).json({ error: "All fields required" });
     }
 
     const review = new Review({
       reviewer: req.user.id,
       reviewedUser: reviewedUserId,
       rating,
-      comment,
+      comment
     });
 
     await review.save();
-    res.json({ message: "Review submitted", review });
+    res.status(201).json(review);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error submitting review" });
+    console.error("[createReview] Error:", err.message);
+    res.status(500).json({ error: "Review submission failed" });
   }
 };
 
-// Get all reviews for a user
+// Get user reviews
 const getReviews = async (req, res) => {
-  const { userId } = req.params;
-
   try {
-    const reviews = await Review.find({ reviewedUser: userId })
-      .populate("reviewer", "name")
+    const reviews = await Review.find({ reviewedUser: req.params.userId })
+      .populate("reviewer", "name avatar")
       .sort({ createdAt: -1 });
 
     res.json(reviews);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error fetching reviews" });
+    console.error("[getReviews] Error:", err.message);
+    res.status(500).json({ error: "Failed to fetch reviews" });
   }
 };
 
-// ✅ Export all
 module.exports = {
   getProfile,
   getUserById,
@@ -225,5 +183,5 @@ module.exports = {
   searchUsers,
   findMatches,
   createReview,
-  getReviews,
+  getReviews
 };
