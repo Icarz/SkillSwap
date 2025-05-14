@@ -7,16 +7,19 @@ const {
   searchUsers,
   findMatches,
   createReview,
-  getReviews
+  getReviews,
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 
+// 1. Static paths first
 router.get("/me", authMiddleware, getProfile);
-router.get("/search",authMiddleware, searchUsers);
+router.get("/search", authMiddleware, searchUsers);
+router.get("/matches", authMiddleware, findMatches); 
+router.post("/review", authMiddleware, createReview);
+
+// 2. Parameterized paths last
+router.get("/reviews/:userId", getReviews); 
 router.get("/:userId", authMiddleware, getUserById);
 router.put("/me", authMiddleware, updateProfile);
-router.get("/matches", authMiddleware, findMatches);
-router.post("/review", authMiddleware, createReview);
-router.get("/reviews/:userId", getReviews);
 
 module.exports = router;

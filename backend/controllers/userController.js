@@ -17,7 +17,7 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Get another user's public profile by ID
+// Get another user's public profile by ID  
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
