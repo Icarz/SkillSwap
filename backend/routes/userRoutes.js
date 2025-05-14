@@ -8,6 +8,7 @@ const {
   findMatches,
   createReview,
   getReviews,
+  deleteReview  
 } = require("../controllers/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 
@@ -20,6 +21,7 @@ router.post("/review", authMiddleware, createReview);
 // 2. Parameterized paths last
 router.get("/reviews/:userId", getReviews); 
 router.get("/:userId", authMiddleware, getUserById);
+router.delete("/reviews/:reviewId", authMiddleware, deleteReview);
 router.put("/me", authMiddleware, updateProfile);
 
 module.exports = router;

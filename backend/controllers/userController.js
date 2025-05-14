@@ -17,7 +17,7 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Get another user's public profile by ID  
+// Get another user's public profile by ID
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
@@ -42,7 +42,7 @@ const updateProfile = async (req, res) => {
     // Case-insensitive skill/learning handling with bulk operations
     const processSkills = async (arr, field) => {
       if (!Array.isArray(arr)) return;
-      
+
       const skillIds = await Promise.all(
         arr.map(async (name) => {
           const skill = await Skill.findOneAndUpdate(
@@ -53,13 +53,13 @@ const updateProfile = async (req, res) => {
           return skill._id;
         })
       );
-      
+
       updateData[field] = skillIds;
     };
 
     await Promise.all([
       processSkills(skills, "skills"),
-      processSkills(learning, "learning")
+      processSkills(learning, "learning"),
     ]);
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -80,14 +80,18 @@ const searchUsers = async (req, res) => {
   try {
     const skillQuery = req.query.skills;
     if (!skillQuery) {
-      return res.status(400).json({ error: "?skills=react,node parameter required" });
+      return res
+        .status(400)
+        .json({ error: "?skills=react,node parameter required" });
     }
 
-    const searchSkills = skillQuery.split(",").map(s => s.trim().toLowerCase());
+    const searchSkills = skillQuery
+      .split(",")
+      .map((s) => s.trim().toLowerCase());
 
     // 1. First find skills that match the search terms
     const matchedSkills = await Skill.find({
-      name: { $in: searchSkills }
+      name: { $in: searchSkills },
     });
 
     if (matchedSkills.length === 0) {
@@ -96,21 +100,20 @@ const searchUsers = async (req, res) => {
 
     // 2. Find users who have ANY of the matched skill IDs
     const users = await User.find({
-      skills: { $in: matchedSkills.map(s => s._id) }
+      skills: { $in: matchedSkills.map((s) => s._id) },
     })
       .select("-password")
       .populate("skills", "name"); // Populate skill names
 
     // 3. Format for response
-    const results = users.map(user => ({
+    const results = users.map((user) => ({
       ...user.toObject(),
-      matchedSkills: user.skills.filter(skill => 
+      matchedSkills: user.skills.filter((skill) =>
         searchSkills.includes(skill.name.toLowerCase())
-      )
+      ),
     }));
 
     res.json(results);
-
   } catch (err) {
     console.error("[searchUsers] Error:", err);
     res.status(500).json({ error: "Search failed" });
@@ -126,7 +129,7 @@ const findMatches = async (req, res) => {
     const users = await User.find({
       _id: { $ne: currentUser._id },
       skills: { $in: currentUser.learning },
-      learning: { $in: currentUser.skills }
+      learning: { $in: currentUser.skills },
     })
       .select("-password")
       .populate("skills learning", "name")
@@ -138,41 +141,108 @@ const findMatches = async (req, res) => {
     res.status(500).json({ error: "Matchmaking failed" });
   }
 };
+//_______________________________________________________//
+//____________Reviews___________________________________//
 
 // Leave a review
 const createReview = async (req, res) => {
   try {
     const { reviewedUserId, rating, comment } = req.body;
-    if (!reviewedUserId || !rating || !comment) {
-      return res.status(400).json({ error: "All fields required" });
+
+    // Validation
+    if (![1, 2, 3, 4, 5].includes(Number(rating))) {
+      return res.status(400).json({ error: "Rating must be 1-5" });
+    }
+
+    // Prevent self-reviews
+    if (reviewedUserId === req.user.id) {
+      return res.status(400).json({ error: "Cannot review yourself" });
+    }
+
+    // Check for existing review
+    const existingReview = await Review.findOne({
+      reviewer: req.user.id,
+      reviewedUser: reviewedUserId,
+    });
+    if (existingReview) {
+      return res.status(400).json({ error: "You already reviewed this user" });
     }
 
     const review = new Review({
       reviewer: req.user.id,
       reviewedUser: reviewedUserId,
       rating,
-      comment
+      comment,
     });
 
     await review.save();
-    res.status(201).json(review);
+
+    // Populate fresh data
+    const populatedReview = await Review.findById(review._id).populate(
+      "reviewer",
+      "name avatar"
+    );
+
+    res.status(201).json(populatedReview);
   } catch (err) {
-    console.error("[createReview] Error:", err.message);
-    res.status(500).json({ error: "Review submission failed" });
+    console.error("[createReview] Error:", err);
+    res.status(500).json({
+      error: "Review submission failed",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
   }
 };
 
 // Get user reviews
 const getReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ reviewedUser: req.params.userId })
-      .populate("reviewer", "name avatar")
-      .sort({ createdAt: -1 });
+    const { userId } = req.params;
 
-    res.json(reviews);
+    // Optional: Add pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const reviews = await Review.find({ reviewedUser: userId })
+      .populate("reviewer", "name avatar")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ reviewedUser: userId });
+
+    res.json({
+      reviews,
+      meta: {
+        page,
+        limit,
+        total,
+        hasNext: total > page * limit,
+      },
+    });
   } catch (err) {
-    console.error("[getReviews] Error:", err.message);
+    console.error("[getReviews] Error:", err);
     res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+};
+
+const deleteReview = async (req, res) => {
+  try {
+    const review = await Review.findOne({
+      _id: req.params.reviewId,
+      reviewer: req.user.id, // Ownership check
+    });
+
+    if (!review) {
+      return res.status(404).json({
+        error: "Review not found or not owned by you",
+      });
+    }
+
+    await Review.deleteOne({ _id: review._id });
+    res.json({ message: "Review deleted successfully" });
+  } catch (err) {
+    console.error("[deleteReview] Error:", err);
+    res.status(500).json({ error: "Failed to delete review" });
   }
 };
 
@@ -183,5 +253,6 @@ module.exports = {
   searchUsers,
   findMatches,
   createReview,
-  getReviews
+  getReviews,
+  deleteReview,
 };
