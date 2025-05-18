@@ -2,13 +2,20 @@ const User = require("../models/User");
 const Review = require("../models/Review");
 const Fuse = require("fuse.js");
 const Skill = require("../models/Skill");
+const Category = require("../models/Category");
 
 // Get current user profile
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
       .select("-password")
-      .populate("skills learning", "name");
+      .populate({
+        path: "skills learning",
+        populate: {
+          path: "category",
+          select: "name icon",
+        },
+      });
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
@@ -22,7 +29,13 @@ const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
       .select("-password")
-      .populate("skills learning", "name");
+      .populate({
+        path: "skills learning",
+        populate: {
+          path: "category",
+          select: "name icon",
+        },
+      });
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
@@ -66,7 +79,13 @@ const updateProfile = async (req, res) => {
       req.user.id,
       { $set: updateData },
       { new: true }
-    ).populate("skills learning", "name");
+    ).populate({
+      path: "skills learning",
+      populate: {
+        path: "category",
+        select: "name icon",
+      },
+    });
 
     res.json(updatedUser);
   } catch (err) {
@@ -103,7 +122,13 @@ const searchUsers = async (req, res) => {
       skills: { $in: matchedSkills.map((s) => s._id) },
     })
       .select("-password")
-      .populate("skills", "name"); // Populate skill names
+      .populate({
+        path: "skills learning",
+        populate: {
+          path: "category",
+          select: "name icon",
+        },
+      }); // Populate skill names
 
     // 3. Format for response
     const results = users.map((user) => ({
@@ -132,7 +157,13 @@ const findMatches = async (req, res) => {
       learning: { $in: currentUser.skills },
     })
       .select("-password")
-      .populate("skills learning", "name")
+      .populate({
+        path: "skills learning",
+        populate: {
+          path: "category",
+          select: "name icon",
+        },
+      })
       .limit(20); // Pagination
 
     res.json(users);

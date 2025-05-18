@@ -4,11 +4,11 @@ update user : done
 search skill : done
 search user : done
 matches:done
+reviews endpoints : done
 ----------------------------
 -------------------------------------------------------
 messages : note yet
-review user : not yet
 add geographic filtering for matches : not yet
-add state of swap between skills for users : not yet
+add state of swap between skills for users : not yet    
 add an endpoint of skills by category : not done yet
 ------------------------------------------------------

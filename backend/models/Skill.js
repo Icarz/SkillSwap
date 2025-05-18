@@ -5,20 +5,21 @@ const skillSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    lowercase:true
+    lowercase: true,
+    unique: true // Prevent duplicate skills
   },
   category: {
-    type: String,
-    default: "",
-  },
-  description: {
-    type: String,
-    default: "",
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true
   },
   createdAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: Date.now
+  }
 });
+
+// Index for faster queries
+skillSchema.index({ name: 1, category: 1 });
 
 module.exports = mongoose.model("Skill", skillSchema);
