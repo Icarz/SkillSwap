@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const transactionRoutes = require("./routes/transactionRoute");
 const categoryRoutes = require("./routes/categoryRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 // initialize the app //
 dotenv.config();
@@ -17,6 +18,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api", messageRoutes);
 
 //--------------------------------//
 
