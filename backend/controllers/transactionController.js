@@ -77,6 +77,43 @@ const updateTransactionStatus = async (req, res) => {
   }
 };
 
+// 🔍 Filter transactions by status and/or type
+const filterMyTransactions = async (req, res) => {
+  const { status, type } = req.query;
+
+  const allowedStatuses = ["pending", "accepted", "completed", "cancelled"];
+  const allowedTypes = ["offer", "request"];
+
+  const filters = { user: req.user.id };
+
+  // Add status filter if provided and valid
+  if (status) {
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status filter" });
+    }
+    filters.status = status;
+  }
+
+  // Add type filter if provided and valid
+  if (type) {
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({ error: "Invalid type filter" });
+    }
+    filters.type = type;
+  }
+  console.log("🧪 Filters:", filters);
+  try {
+    const transactions = await Transaction.find(filters)
+      .populate("skill")
+      .sort({ createdAt: -1 });
+
+    res.json(transactions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to filter transactions" });
+  }
+};
+
 // ✅ Delete a transaction (optional)
 const deleteTransaction = async (req, res) => {
   const { id } = req.params;
@@ -100,4 +137,5 @@ module.exports = {
   getMyTransactions,
   updateTransactionStatus,
   deleteTransaction,
+  filterMyTransactions,
 };
