@@ -1,25 +1,25 @@
-const Transaction = require('../models/Transaction');
+const Transaction = require("../models/Transaction");
 
 // ✅ Create a new transaction (offer or request)
 const createTransaction = async (req, res) => {
   const { skill, type } = req.body;
 
-  if (!['offer', 'request'].includes(type)) {
-    return res.status(400).json({ error: 'Invalid transaction type' });
+  if (!["offer", "request"].includes(type)) {
+    return res.status(400).json({ error: "Invalid transaction type" });
   }
 
   try {
     const transaction = new Transaction({
       user: req.user.id,
       skill,
-      type
+      type,
     });
 
     await transaction.save();
     res.status(201).json(transaction);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to create transaction' });
+    res.status(500).json({ error: "Failed to create transaction" });
   }
 };
 
@@ -27,13 +27,13 @@ const createTransaction = async (req, res) => {
 const getMyTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find({ user: req.user.id })
-      .populate('skill')
+      .populate("skill")
       .sort({ createdAt: -1 });
 
     res.json(transactions);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to retrieve transactions' });
+    res.status(500).json({ error: "Failed to retrieve transactions" });
   }
 };
 
@@ -42,26 +42,38 @@ const updateTransactionStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const allowedStatuses = ['pending', 'accepted', 'completed', 'cancelled'];
+  const allowedStatuses = ["pending", "accepted", "completed", "cancelled"];
   if (!allowedStatuses.includes(status)) {
-    return res.status(400).json({ error: 'Invalid status value' });
+    return res.status(400).json({ error: "Invalid status value" });
   }
 
   try {
-    const transaction = await Transaction.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
+    const transaction = await Transaction.findById(id);
 
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ error: "Transaction not found" });
     }
+    // If status is being set to 'accepted', assign current user as acceptor
+    if (status === "accepted") {
+      // Prevent the creator from accepting their own transaction
+      if (transaction.user.toString() === req.user.id) {
+        return res
+          .status(400)
+          .json({ error: "You cannot accept your own transaction." });
+      }
 
-    res.json(transaction);
+      transaction.status = "accepted";
+      transaction.acceptor = req.user.id;
+    } else {
+      // Only allow status updates for other transitions
+      transaction.status = status;
+    }
+    await transaction.save();
+    const updated = await Transaction.findById(transaction._id);
+    res.json(updated);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to update transaction' });
+    res.status(500).json({ error: "Failed to update transaction" });
   }
 };
 
@@ -72,13 +84,13 @@ const deleteTransaction = async (req, res) => {
   try {
     const deleted = await Transaction.findByIdAndDelete(id);
     if (!deleted) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ error: "Transaction not found" });
     }
 
-    res.json({ message: 'Transaction deleted successfully' });
+    res.json({ message: "Transaction deleted successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to delete transaction' });
+    res.status(500).json({ error: "Failed to delete transaction" });
   }
 };
 
@@ -87,5 +99,5 @@ module.exports = {
   createTransaction,
   getMyTransactions,
   updateTransactionStatus,
-  deleteTransaction
+  deleteTransaction,
 };
