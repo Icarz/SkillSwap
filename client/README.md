@@ -1,12 +1,79 @@
-# React + Vite
+# SkillSwap Frontend Roadmap
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Welcome to the frontend roadmap for the **SkillSwap** project — a skill-sharing platform where users can offer and request skills, chat, leave reviews, and swap services securely.
 
-Currently, two official plugins are available:
+This frontend will be built using **React + Vite**, styled with **Tailwind CSS**, and powered by a RESTful backend.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## 🚀 Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **React** (with Vite for fast builds)
+- **React Router DOM** – for routing
+- **Axios** – for API communication
+- **Context API** – for authentication state
+- **Tailwind CSS** – utility-first styling
+- Optional:
+  - `react-toastify` – toast notifications
+  - `react-hook-form` or `yup` – for validation
+  - Zustand or React Query – advanced state/data handling
+
+---
+
+## 🗺️ Pages Overview
+
+| Route               | Description                            |
+|---------------------|----------------------------------------|
+| `/`                 | Landing page with CTA                  |
+| `/login`            | Login form                             |
+| `/register`         | Registration form                      |
+| `/dashboard`        | User overview (profile + activity)     |
+| `/profile`          | View/edit personal profile             |
+| `/explore-users`    | Search/filter users                    |
+| `/explore-skills`   | Browse/search available skills         |
+| `/messages`         | Messaging page                         |
+| `/transactions`     | View and filter skill swap status      |
+
+---
+
+## 🧩 Key Components
+
+- `Navbar`
+- `Footer`
+- `PrivateRoute`
+- `SkillCard`
+- `UserCard`
+- `TransactionItem`
+- `MessageThread`
+- `MessageForm`
+- `SearchBar`
+- `FilterDropdown`
+- `CategoryBadge`
+- `SkillForm`
+- `ReviewForm`
+- `ReviewList`
+- `ProfileDetails`
+- `ProfileEditForm`
+- `Pagination`
+- `LoadingSpinner`
+- `ErrorBanner`
+- `NotificationToast` (optional)
+
+---
+
+## 🔐 Auth State Management
+
+Auth will be handled via `AuthContext` using React Context API:
+```js
+const AuthContext = createContext();
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const login = (userData) => { ... };
+  const logout = () => { ... };
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
