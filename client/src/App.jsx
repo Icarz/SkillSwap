@@ -21,6 +21,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/explore-skills" element={<ExploreSkills />} />
         <Route path="/explore-users" element={<ExploreUsers />} />
         //**Public Routes */ //**Private Routes */

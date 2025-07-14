@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 
 const Footer = () => (
-  <footer className="bg-primary text-light py-6">
+  <footer className="bg-primary text-light py-10">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
       {/* Brand & Copyright */}
       <div className="text-center md:text-left">
