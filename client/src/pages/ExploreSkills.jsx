@@ -1,12 +1,13 @@
 // src/pages/ExploreSkills.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
+import SkillCard from "../components/SkillCard";
 
-const API_BASE = "http://localhost:5000/api"; // Adjust if needed
+const API_BASE = "http://localhost:5000/api"; 
 
 const ExploreSkills = () => {
   const [categories, setCategories] = useState([]);
-  const [expanded, setExpanded] = useState({}); // { [catId]: { loading, error, skills } }
+  const [expanded, setExpanded] = useState({}); 
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState("");
 
@@ -81,25 +82,15 @@ const ExploreSkills = () => {
               const isOpen = !!expanded[cat._id];
               const catState = expanded[cat._id] || {};
               return (
-                <div
-                  key={cat._id}
-                  className={`flex flex-col items-center p-4 rounded-xl shadow transition border-2 bg-white relative
-                    ${isOpen ? "border-accent bg-light" : "border-transparent hover:border-accent hover:bg-light"}
-                  `}
-                >
-                  <button
-                    className="flex flex-col items-center w-full focus:outline-none"
+                <div key={cat._id}>
+                  <SkillCard
+                    skill={{
+                      name: cat.name,
+                      category: { icon: cat.icon, description: cat.description }
+                    }}
                     onClick={() => handleCategoryClick(cat)}
-                    aria-expanded={isOpen}
-                  >
-                    <span className="text-3xl mb-2">{cat.icon}</span>
-                    <span className="font-bold text-primary capitalize">{cat.name.replace(/-/g, " ")}</span>
-                    <span className="text-xs text-secondary text-center mt-1">{cat.description}</span>
-                    <span className="mt-2 text-accent text-xs">
-                      {isOpen ? "Hide skills ▲" : "Show skills ▼"}
-                    </span>
-                  </button>
-                  {/* Skills dropdown */}
+                  />
+                  {/* Skills dropdown, if expanded */}
                   {isOpen && (
                     <div className="w-full mt-4">
                       {catState.loading ? (
