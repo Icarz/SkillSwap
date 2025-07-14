@@ -65,16 +65,21 @@ const Profile = () => {
 
   // Fetch reviews for this user
   useEffect(() => {
-    if (!profile?._id) return;
+    if (!profile?._id || !token) return;
     setLoadingReviews(true);
+
     axios
-      .get(`${API_BASE}/users/reviews/${profile._id}`)
+      .get(`${API_BASE}/users/reviews/${profile._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((res) => {
         setReviews(res.data);
         setLoadingReviews(false);
       })
       .catch(() => setLoadingReviews(false));
-  }, [profile]);
+  }, [profile, token]);
 
   // Handle edit form changes
   const handleEditChange = (e) => {
