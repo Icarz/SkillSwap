@@ -4,7 +4,15 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale } from "chart.js";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from "chart.js";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ErrorBanner from "../components/ErrorBanner";
+import TransactionItem from "../components/TransactionItem";
 ChartJS.register(BarElement, CategoryScale, LinearScale);
 
 // Helper: Get initials from name/email
@@ -48,9 +56,7 @@ const Dashboard = () => {
         setLoading(false);
       })
       .catch((err) => {
-        setError(
-          err.response?.data?.error || "Failed to load profile."
-        );
+        setError(err.response?.data?.error || "Failed to load profile.");
         setLoading(false);
       });
   }, [token]);
@@ -92,10 +98,18 @@ const Dashboard = () => {
   }, [profile, token]);
 
   // Stats
-  const pendingCount = transactions.filter(tx => tx.status === "pending").length;
-  const acceptedCount = transactions.filter(tx => tx.status === "accepted").length;
-  const completedCount = transactions.filter(tx => tx.status === "completed").length;
-  const cancelledCount = transactions.filter(tx => tx.status === "cancelled").length;
+  const pendingCount = transactions.filter(
+    (tx) => tx.status === "pending"
+  ).length;
+  const acceptedCount = transactions.filter(
+    (tx) => tx.status === "accepted"
+  ).length;
+  const completedCount = transactions.filter(
+    (tx) => tx.status === "completed"
+  ).length;
+  const cancelledCount = transactions.filter(
+    (tx) => tx.status === "cancelled"
+  ).length;
 
   // Chart data
   const txStats = {
@@ -113,22 +127,16 @@ const Dashboard = () => {
   const filteredTx =
     txFilter === "all"
       ? transactions.slice(0, 5)
-      : transactions.filter(tx => tx.status === txFilter).slice(0, 5);
+      : transactions.filter((tx) => tx.status === txFilter).slice(0, 5);
+
+  // TransactionItem action handlers (no-op here, just for demo)
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[40vh]">
-        <span className="text-accent animate-pulse">Loading dashboard...</span>
-      </div>
-    );
+    return <LoadingSpinner text="Loading dashboard..." />;
   }
 
   if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-[40vh]">
-        <span className="text-red-600">{error}</span>
-      </div>
-    );
+    return <ErrorBanner error={error} />;
   }
 
   return (
@@ -136,35 +144,54 @@ const Dashboard = () => {
       {/* Notifications */}
       {pendingCount > 0 && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded">
-          <span className="font-semibold">{pendingCount}</span> pending transaction{pendingCount > 1 ? "s" : ""}!{" "}
-          <Link to="/transactions" className="underline text-yellow-800">Review now</Link>
+          <span className="font-semibold">{pendingCount}</span> pending
+          transaction{pendingCount > 1 ? "s" : ""}!{" "}
+          <Link to="/transactions" className="underline text-yellow-800">
+            Review now
+          </Link>
         </div>
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-light rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{profile.skills?.length || 0}</div>
+          <div className="text-2xl font-bold text-primary">
+            {profile.skills?.length || 0}
+          </div>
           <div className="text-xs text-secondary">Skills</div>
         </div>
         <div className="bg-light rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{profile.learning?.length || 0}</div>
+          <div className="text-2xl font-bold text-primary">
+            {profile.learning?.length || 0}
+          </div>
           <div className="text-xs text-secondary">Learning</div>
         </div>
         <div className="bg-light rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{transactions.length}</div>
+          <div className="text-2xl font-bold text-primary">
+            {transactions.length}
+          </div>
           <div className="text-xs text-secondary">Transactions</div>
         </div>
         <div className="bg-light rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-primary">{messages.length}</div>
+          <div className="text-2xl font-bold text-primary">
+            {messages.length}
+          </div>
           <div className="text-xs text-secondary">Messages</div>
         </div>
       </div>
 
       {/* Transaction Status Chart */}
       <div className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold text-primary mb-4">Transaction Status Overview</h2>
-        <Bar data={txStats} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+        <h2 className="text-lg font-semibold text-primary mb-4">
+          Transaction Status Overview
+        </h2>
+        <Bar
+          data={txStats}
+          options={{
+            responsive: true,
+            plugins: { legend: { display: false } },
+          }}
+        />
       </div>
 
       {/* User Overview & Quick Links */}
@@ -179,11 +206,15 @@ const Dashboard = () => {
           <div className="text-secondary mb-2">{profile.email}</div>
           <div className="flex flex-wrap gap-6 mt-2">
             <div>
-              <span className="font-semibold text-primary">{profile.skills?.length || 0}</span>
+              <span className="font-semibold text-primary">
+                {profile.skills?.length || 0}
+              </span>
               <span className="text-xs text-secondary ml-1">Skills</span>
             </div>
             <div>
-              <span className="font-semibold text-primary">{profile.learning?.length || 0}</span>
+              <span className="font-semibold text-primary">
+                {profile.learning?.length || 0}
+              </span>
               <span className="text-xs text-secondary ml-1">Learning</span>
             </div>
             <div>
@@ -194,19 +225,34 @@ const Dashboard = () => {
         </div>
         {/* More Quick Links */}
         <div className="flex flex-col gap-2">
-          <Link to="/explore-skills" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center">
+          <Link
+            to="/explore-skills"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+          >
             Explore Skills
           </Link>
-          <Link to="/explore-users" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center">
+          <Link
+            to="/explore-users"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+          >
             Explore Users
           </Link>
-          <Link to="/profile" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center">
+          <Link
+            to="/profile"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+          >
             My Profile
           </Link>
-          <Link to="/transactions" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center">
+          <Link
+            to="/transactions"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+          >
             My Transactions
           </Link>
-          <Link to="/messages" className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center">
+          <Link
+            to="/messages"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+          >
             My Messages
           </Link>
         </div>
@@ -217,12 +263,14 @@ const Dashboard = () => {
         {/* Recent Transactions */}
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-primary">Recent Transactions</h2>
+            <h2 className="text-xl font-semibold text-primary">
+              Recent Transactions
+            </h2>
             {/* Filter Dropdown */}
             <select
               className="border rounded px-2 py-1 text-sm"
               value={txFilter}
-              onChange={e => setTxFilter(e.target.value)}
+              onChange={(e) => setTxFilter(e.target.value)}
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
@@ -232,50 +280,23 @@ const Dashboard = () => {
             </select>
           </div>
           {loadingTx ? (
-            <div className="text-accent animate-pulse">Loading transactions...</div>
+            <LoadingSpinner text="Loading transactions..." />
           ) : errorTx ? (
-            <div className="text-red-600">{errorTx}</div>
+            <ErrorBanner error={errorTx} />
           ) : filteredTx.length === 0 ? (
             <div className="text-gray-400">No transactions yet.</div>
           ) : (
             <ul className="space-y-3">
               {filteredTx.map((tx) => (
-                <li
-                  key={tx._id}
-                  className="flex items-center justify-between bg-light rounded p-3"
-                >
-                  <div>
-                    <span className="font-semibold text-secondary capitalize">
-                      {tx.type}
-                    </span>{" "}
-                    <span className="text-primary font-medium">
-                      {tx.skill?.name?.replace(/-/g, " ") || "Unknown Skill"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        tx.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : tx.status === "accepted"
-                          ? "bg-blue-100 text-blue-700"
-                          : tx.status === "completed"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {tx.status}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(tx.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </li>
+                <TransactionItem key={tx._id} tx={tx} />
               ))}
             </ul>
           )}
           <div className="mt-4 text-right">
-            <Link to="/transactions" className="text-accent hover:underline text-sm">
+            <Link
+              to="/transactions"
+              className="text-accent hover:underline text-sm"
+            >
               View all transactions &rarr;
             </Link>
           </div>
@@ -283,11 +304,13 @@ const Dashboard = () => {
 
         {/* Recent Messages */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-xl font-semibold text-primary mb-4">Recent Messages</h2>
+          <h2 className="text-xl font-semibold text-primary mb-4">
+            Recent Messages
+          </h2>
           {loadingMsg ? (
-            <div className="text-accent animate-pulse">Loading messages...</div>
+            <LoadingSpinner text="Loading messages..." />
           ) : errorMsg ? (
-            <div className="text-red-600">{errorMsg}</div>
+            <ErrorBanner error={errorMsg} />
           ) : messages.length === 0 ? (
             <div className="text-gray-400">No messages yet.</div>
           ) : (
@@ -299,9 +322,7 @@ const Dashboard = () => {
                 >
                   <div>
                     <span className="font-semibold text-secondary">
-                      {msg.sender?.name === profile.name
-                        ? "To"
-                        : "From"}
+                      {msg.sender?.name === profile.name ? "To" : "From"}
                     </span>{" "}
                     <span className="text-primary font-medium">
                       {msg.sender?.name === profile.name
@@ -320,7 +341,10 @@ const Dashboard = () => {
             </ul>
           )}
           <div className="mt-4 text-right">
-            <Link to="/messages" className="text-accent hover:underline text-sm">
+            <Link
+              to="/messages"
+              className="text-accent hover:underline text-sm"
+            >
               View all messages &rarr;
             </Link>
           </div>

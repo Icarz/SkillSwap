@@ -39,16 +39,18 @@ const Profile = () => {
   const [editSuccess, setEditSuccess] = useState("");
 
   // Fetch profile (current or public)
-  useEffect(() => {
-    setLoading(true);
-    setError("");
-    const url = userId ? `${API_BASE}/users/${userId}` : `${API_BASE}/users/me`;
-    axios
-      .get(url, userId ? {} : { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
+ useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const url = userId ? `${API_BASE}/users/${userId}` : `${API_BASE}/users/me`;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get(url, { headers });
         setProfile(res.data);
         setLoading(false);
-        // Prepare edit data if it's your own profile
+
+        // Prepare edit form if it's your own profile
         if (!userId || (authUser && res.data._id === authUser._id)) {
           setEditData({
             bio: res.data.bio || "",
@@ -56,11 +58,12 @@ const Profile = () => {
             learning: (res.data.learning || []).map((s) => s.name).join(", "),
           });
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err.response?.data?.error || "Failed to load profile.");
         setLoading(false);
-      });
+      }
+    };
+    fetchProfile();
   }, [token, userId, authUser]);
 
   // Fetch reviews for this user

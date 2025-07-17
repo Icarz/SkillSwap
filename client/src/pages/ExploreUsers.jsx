@@ -2,7 +2,9 @@
 import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
-import UserCard from "../components/UserCard"; // <-- Import the modular component
+import UserCard from "../components/UserCard";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ErrorBanner from "../components/ErrorBanner";
 
 const API_BASE = "http://localhost:5000/api"; // Adjust if needed
 
@@ -67,19 +69,21 @@ const ExploreUsers = () => {
       </form>
 
       {/* Results */}
-      {error && (
-        <div className="text-red-600 text-center mb-4">{error}</div>
+      {loading ? (
+        <LoadingSpinner text="Searching users..." />
+      ) : error ? (
+        <ErrorBanner error={error} />
+      ) : searched && users.length === 0 ? (
+        <div className="text-gray-500 text-center">
+          No users found for these skills.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {users.map((user) => (
+            <UserCard key={user._id} user={user} />
+          ))}
+        </div>
       )}
-
-      {searched && !loading && users.length === 0 && !error && (
-        <div className="text-gray-500 text-center">No users found for these skills.</div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {users.map((user) => (
-          <UserCard key={user._id} user={user} />
-        ))}
-      </div>
     </div>
   );
 };

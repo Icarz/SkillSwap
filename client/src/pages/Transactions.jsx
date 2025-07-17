@@ -143,6 +143,25 @@ const Transactions = () => {
         </button>
       </div>
 
+      {/* Notifications and Stats */}
+      <div className="bg-white rounded-xl shadow p-6 mb-8">
+        <h2 className="text-xl font-semibold text-primary mb-4">Notifications & Stats</h2>
+        <div className="flex flex-wrap gap-4">
+          <div className="bg-light rounded p-4 flex-1">
+            <span className="font-semibold text-secondary">Total Transactions:</span>
+            <span className="text-primary ml-2">{transactions.length}</span>
+          </div>
+          <div className="bg-light rounded p-4 flex-1">
+            <span className="font-semibold text-secondary">Pending Transactions:</span>
+            <span className="text-primary ml-2">{transactions.filter(tx => tx.status === 'pending').length}</span>
+          </div>
+          <div className="bg-light rounded p-4 flex-1">
+            <span className="font-semibold text-secondary">Completed Transactions:</span>
+            <span className="text-primary ml-2">{transactions.filter(tx => tx.status === 'completed').length}</span>
+          </div>
+        </div>
+      </div>
+
       {/* New Transaction Form */}
       {creating && creating !== "submitting" && (
         <form
@@ -230,6 +249,28 @@ const Transactions = () => {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Quick Links */}
+      <div className="flex flex-wrap gap-4 mt-8">
+        <Link
+          to="/dashboard"
+          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
+        >
+          Back to Dashboard
+        </Link>
+        <Link
+          to="/explore-skills"
+          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
+        >
+          Explore Skills
+        </Link>
+        <Link
+          to="/explore-users"
+          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
+        >
+          Explore Users
+        </Link>
       </div>
     </div>
   );

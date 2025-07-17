@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import SkillCard from "../components/SkillCard";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ErrorBanner from "../components/ErrorBanner";
 
-const API_BASE = "http://localhost:5000/api"; 
+const API_BASE = "http://localhost:5000/api";
 
 const ExploreSkills = () => {
   const [categories, setCategories] = useState([]);
-  const [expanded, setExpanded] = useState({}); 
+  const [expanded, setExpanded] = useState({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState("");
 
@@ -71,11 +73,9 @@ const ExploreSkills = () => {
       <section>
         <h2 className="text-xl font-semibold text-secondary mb-4">Categories</h2>
         {loadingCats ? (
-          <div className="flex justify-center py-8">
-            <span className="text-accent animate-pulse">Loading categories...</span>
-          </div>
+          <LoadingSpinner text="Loading categories..." />
         ) : error ? (
-          <div className="text-red-600 text-center">{error}</div>
+          <ErrorBanner error={error} />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {categories.map((cat) => {
@@ -94,9 +94,9 @@ const ExploreSkills = () => {
                   {isOpen && (
                     <div className="w-full mt-4">
                       {catState.loading ? (
-                        <div className="text-accent animate-pulse text-center">Loading skills...</div>
+                        <LoadingSpinner text="Loading skills..." />
                       ) : catState.error ? (
-                        <div className="text-red-600 text-center">{catState.error}</div>
+                        <ErrorBanner error={catState.error} />
                       ) : catState.skills.length === 0 ? (
                         <div className="text-gray-500 text-center">No skills found.</div>
                       ) : (
