@@ -1,0 +1,87 @@
+Profile.jsx 
+
+---- adding a button -----
+<button onClick={handleSendTransactionRequest}>
+  Send Transaction Request
+</button> 
+
+----- handleSendTransactionRequest--------
+const handleSendTransactionRequest = async () => {
+  try {
+    const response = await axios.post(
+      `${API_BASE}/transactions`,
+      { skill: selectedSkill, type: "request", userId: profileUserId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    alert("Transaction request sent successfully!");
+  } catch (error) {
+    console.error("Failed to send transaction request:", error);
+    alert("Failed to send transaction request.");
+  }
+};
+
+------- transactionController--------
+const createTransaction = async (req, res) => {
+  const { skill, type, userId } = req.body;
+  try {
+    const transaction = new Transaction({
+      user: userId,
+      skill,
+      type,
+      status: "pending",
+    });
+    await transaction.save();
+    res.status(201).json(transaction);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create transaction" });
+  }
+};
+
+-------------transactionsRoute------------------------------
+
+router.post("/", authMiddleware, createTransaction);
+
+-------------dashboard-------------------
+useEffect(() => {
+  const fetchTransactions = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/transactions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTransactions(response.data);
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+    }
+  };
+  fetchTransactions();
+}, []);
+
+
+---------------1. **Display Pending Transactions**--------------------
+{transactions.map((tx) => (
+  <div key={tx._id}>
+    <p>Transaction Request for {tx.skill.name}</p>
+    <button onClick={() => handleAcceptTransaction(tx._id)}>Accept</button>
+    <button onClick={() => handleDeclineTransaction(tx._id)}>Decline</button>
+  </div>
+))}
+
+
+--------------1. **Accept/Decline Transaction**:--------------------
+
+const handleAcceptTransaction = async (transactionId) => {
+  try {
+    await axios.put(
+      `${API_BASE}/transactions/${transactionId}`,
+      { status: "accepted" },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    alert("Transaction accepted!");
+    fetchTransactions(); // Refresh the list
+  } catch (error) {
+    console.error("Failed to accept transaction:", error);
+  }
+};
+
+
+----------------------------------------------------------------

@@ -1,11 +1,13 @@
 // src/components/Navbar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 // Helper: Get initials from user name/email
-const getInitials = (user) => {
-  if (!user) return "";
+const getInitials = (userData) => {
+  if (!userData) return "";
+
+  const user = userData.user || userData;
   if (user.name) {
     return user.name
       .split(" ")
@@ -17,11 +19,24 @@ const getInitials = (user) => {
   return "";
 };
 
+// Helper: Get full avatar URL
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith("http")) return avatarPath;
+  return `http://localhost:5000${avatarPath}`;
+};
+
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  // Reset avatar error state when user changes
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatar]);
 
   const handleLogout = () => {
     logout();
@@ -31,6 +46,13 @@ const Navbar = () => {
 
   // Close mobile menu on navigation
   const handleNavClick = () => setMenuOpen(false);
+
+  // Debug log
+  console.log("Navbar user data:", {
+    user,
+    hasAvatar: !!user?.avatar,
+    avatarUrl: user?.avatar ? getAvatarUrl(user.avatar) : null,
+  });
 
   return (
     <nav className="bg-primary text-white sticky top-0 z-50 shadow-md">
@@ -76,27 +98,51 @@ const Navbar = () => {
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/explore-skills" className="hover:text-accent transition" onClick={handleNavClick}>
+          <Link
+            to="/explore-skills"
+            className="hover:text-accent transition"
+            onClick={handleNavClick}
+          >
             Explore Skills
           </Link>
-          <Link to="/explore-users" className="hover:text-accent transition" onClick={handleNavClick}>
+          <Link
+            to="/explore-users"
+            className="hover:text-accent transition"
+            onClick={handleNavClick}
+          >
             Explore Users
           </Link>
           {!user ? (
             <>
-              <Link to="/login" className="hover:text-accent transition" onClick={handleNavClick}>
+              <Link
+                to="/login"
+                className="hover:text-accent transition"
+                onClick={handleNavClick}
+              >
                 Login
               </Link>
-              <Link to="/register" className="hover:text-accent transition" onClick={handleNavClick}>
+              <Link
+                to="/register"
+                className="hover:text-accent transition"
+                onClick={handleNavClick}
+              >
                 Register
               </Link>
             </>
           ) : (
             <>
-              <Link to="/dashboard" className="hover:text-accent transition" onClick={handleNavClick}>
+              <Link
+                to="/dashboard"
+                className="hover:text-accent transition"
+                onClick={handleNavClick}
+              >
                 Dashboard
               </Link>
-              <Link to="/profile" className="hover:text-accent transition" onClick={handleNavClick}>
+              <Link
+                to="/profile"
+                className="hover:text-accent transition"
+                onClick={handleNavClick}
+              >
                 Profile
               </Link>
               {/* Avatar Dropdown */}
@@ -106,9 +152,18 @@ const Navbar = () => {
                   onClick={() => setDropdownOpen((open) => !open)}
                   aria-label="User menu"
                 >
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-accent text-white font-bold text-lg">
-                    {getInitials(user)}
-                  </span>
+                  {user?.avatar && !avatarError ? (
+                    <img
+                      src={getAvatarUrl(user.avatar)}
+                      alt="Profile"
+                      className="w-9 h-9 rounded-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-accent text-white font-bold text-lg">
+                      {getInitials(user)}
+                    </span>
+                  )}
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -156,27 +211,51 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-primary px-4 pb-4 pt-2 space-y-2">
-          <Link to="/explore-skills" className="block hover:text-accent" onClick={handleNavClick}>
+          <Link
+            to="/explore-skills"
+            className="block hover:text-accent"
+            onClick={handleNavClick}
+          >
             Explore Skills
           </Link>
-          <Link to="/explore-users" className="block hover:text-accent" onClick={handleNavClick}>
+          <Link
+            to="/explore-users"
+            className="block hover:text-accent"
+            onClick={handleNavClick}
+          >
             Explore Users
           </Link>
           {!user ? (
             <>
-              <Link to="/login" className="block hover:text-accent" onClick={handleNavClick}>
+              <Link
+                to="/login"
+                className="block hover:text-accent"
+                onClick={handleNavClick}
+              >
                 Login
               </Link>
-              <Link to="/register" className="block hover:text-accent" onClick={handleNavClick}>
+              <Link
+                to="/register"
+                className="block hover:text-accent"
+                onClick={handleNavClick}
+              >
                 Register
               </Link>
             </>
           ) : (
             <>
-              <Link to="/dashboard" className="block hover:text-accent" onClick={handleNavClick}>
+              <Link
+                to="/dashboard"
+                className="block hover:text-accent"
+                onClick={handleNavClick}
+              >
                 Dashboard
               </Link>
-              <Link to="/profile" className="block hover:text-accent" onClick={handleNavClick}>
+              <Link
+                to="/profile"
+                className="block hover:text-accent"
+                onClick={handleNavClick}
+              >
                 Profile
               </Link>
               <button

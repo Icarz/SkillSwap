@@ -4,6 +4,42 @@ const Skill = require("../models/Skill");
 const Category = require("../models/Category");
 const Fuse = require("fuse.js");
 
+// ===== Multer for file upload (NEW) =====
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
+
+// Configure multer storage for avatars
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, "..", "uploads", "avatars");
+    fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Use userId + timestamp + ext for uniqueness
+    const ext = path.extname(file.originalname);
+    cb(null, req.user.id + "_" + Date.now() + ext);
+  },
+});
+
+// File filter for images only
+const avatarFileFilter = (req, file, cb) => {
+  if (!file.mimetype.startsWith("image/")) {
+    return cb(new Error("Only image files are allowed!"), false);
+  }
+  cb(null, true);
+};
+
+// Multer middleware for avatar upload
+const uploadAvatarMulter = multer({
+  storage: avatarStorage,
+  fileFilter: avatarFileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+}).single("avatar");
+
+// ===== End Multer config =====
+
 // Constants
 const DEFAULT_CATEGORY = "programming";
 
@@ -104,6 +140,53 @@ const updateProfile = async (req, res) => {
     });
   }
 };
+
+// ===== NEW: Upload Avatar Controller =====
+const uploadAvatar = async (req, res) => {
+  console.log("Upload request received", {
+    headers: req.headers,
+    file: req.file
+      ? {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        }
+      : null,
+    user: req.user,
+  });
+
+  if (!req.file) {
+    console.error("No file received in upload");
+    return res.status(400).json({
+      error: "No file uploaded",
+      details: "Please select an image file",
+    });
+  }
+
+  try {
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatar: avatarUrl },
+      { new: true }
+    ).select("-password");
+
+    console.log("Avatar successfully uploaded:", avatarUrl);
+    const populatedUser = await populateUser(User.findById(user._id));
+    return res.json({
+      message: "Avatar uploaded successfully",
+      avatar: avatarUrl,
+      user: populatedUser,
+    });
+  } catch (error) {
+    console.error("Avatar update error:", error);
+    return res.status(500).json({
+      error: "Failed to update avatar",
+      details: error.message,
+    });
+  }
+};
+// ===== END uploadAvatar =====
 
 // Search users by skills
 const searchUsers = async (req, res) => {
@@ -265,4 +348,6 @@ module.exports = {
   createReview,
   getReviews,
   deleteReview,
+  uploadAvatar, // <--- Export the new controller
+  uploadAvatarMulter, // <--- Export multer middleware for use in routes
 };

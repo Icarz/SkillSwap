@@ -13,11 +13,35 @@ const getInitials = (user) => {
   return "";
 };
 
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith("http")) return avatarPath;
+  return `http://localhost:5000${avatarPath}`;
+};
+
 const UserCard = ({ user }) => (
   <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border-2 border-transparent hover:border-accent transition">
-    <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold mb-3">
-      {getInitials(user)}
-    </div>
+    {user.avatar ? (
+      <img
+        src={getAvatarUrl(user.avatar)}
+        alt="Profile"
+        className="w-16 h-16 rounded-full object-cover mb-3"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = null;
+          // Fallback to initials if image fails to load
+          e.target.outerHTML = `
+            <div class="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold mb-3">
+              ${getInitials(user)}
+            </div>
+          `;
+        }}
+      />
+    ) : (
+      <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold mb-3">
+        {getInitials(user)}
+      </div>
+    )}
     <div className="font-bold text-primary text-lg mb-1 capitalize">{user.name}</div>
     {user.skills && user.skills.length > 0 && (
       <div className="flex flex-wrap gap-2 justify-center mb-2">

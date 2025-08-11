@@ -101,7 +101,6 @@ const filterMyTransactions = async (req, res) => {
     }
     filters.type = type;
   }
-  console.log("🧪 Filters:", filters);
   try {
     const transactions = await Transaction.find(filters)
       .populate("skill")

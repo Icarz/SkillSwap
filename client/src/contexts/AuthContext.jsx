@@ -10,7 +10,6 @@ export const useAuth = () => useContext(AuthContext);
 // 3. Define the provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    // Load user from localStorage if exists
     const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
@@ -19,7 +18,6 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem("token") || null;
   });
 
-  // 4. Login handler
   const login = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);
@@ -27,7 +25,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", authToken);
   };
 
-  // 5. Logout handler
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -35,8 +32,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
-  // 6. Context value available to all children
-  const value = { user, token, login, logout };
+  // NEW: Add this function
+  const updateUser = (updatedUserData) => {
+    setUser(updatedUserData);
+    localStorage.setItem("user", JSON.stringify(updatedUserData));
+  };
+
+  const value = { user, token, login, logout, updateUser }; // Include updateUser
 
   return (
     <AuthContext.Provider value={value}>

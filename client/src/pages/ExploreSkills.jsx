@@ -4,6 +4,7 @@ import axios from "axios";
 import SkillCard from "../components/SkillCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
+import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -12,8 +13,8 @@ const ExploreSkills = () => {
   const [expanded, setExpanded] = useState({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState("");
+  const { token } = useAuth(); // grab token from context
 
-  // Fetch categories on mount
   useEffect(() => {
     setLoadingCats(true);
     axios
@@ -28,38 +29,98 @@ const ExploreSkills = () => {
       });
   }, []);
 
-  // Handle expand/collapse and fetch skills if needed
   const handleCategoryClick = (cat) => {
     setExpanded((prev) => {
-      // Collapse if already expanded
       if (prev[cat._id]) {
         const newState = { ...prev };
         delete newState[cat._id];
         return newState;
       }
-      // Expand and fetch skills
       return {
         ...prev,
-        [cat._id]: { loading: true, error: "", skills: [] }
+        [cat._id]: { loading: true, error: "", skills: [] },
       };
     });
 
-    // Only fetch if not already loaded
     if (!expanded[cat._id]) {
       axios
         .get(`${API_BASE}/categories/${cat._id}/skills`)
         .then((res) => {
+          const skillsWithReviewsState = res.data.map((skill) => ({
+            ...skill,
+            reviews: [],
+            reviewsLoading: false,
+            reviewsError: "",
+          }));
+
           setExpanded((prev) => ({
             ...prev,
-            [cat._id]: { loading: false, error: "", skills: res.data }
+            [cat._id]: {
+              loading: false,
+              error: "",
+              skills: skillsWithReviewsState,
+            },
           }));
         })
         .catch(() => {
           setExpanded((prev) => ({
             ...prev,
-            [cat._id]: { loading: false, error: "Failed to load skills.", skills: [] }
+            [cat._id]: {
+              loading: false,
+              error: "Failed to load skills.",
+              skills: [],
+            },
           }));
         });
+    }
+  };
+
+  const fetchSkillReviews = async (catId, skillId) => {
+    setExpanded((prev) => {
+      const updatedSkills = prev[catId].skills.map((s) =>
+        s._id === skillId ? { ...s, reviewsLoading: true, reviewsError: "" } : s
+      );
+      return {
+        ...prev,
+        [catId]: { ...prev[catId], skills: updatedSkills },
+      };
+    });
+
+    try {
+      const res = await axios.get(`${API_BASE}/users/reviews/${skillId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setExpanded((prev) => {
+        const updatedSkills = prev[catId].skills.map((s) =>
+          s._id === skillId
+            ? { ...s, reviews: res.data, reviewsLoading: false }
+            : s
+        );
+        return {
+          ...prev,
+          [catId]: { ...prev[catId], skills: updatedSkills },
+        };
+      });
+    } catch (err) {
+      setExpanded((prev) => {
+        const updatedSkills = prev[catId].skills.map((s) =>
+          s._id === skillId
+            ? {
+                ...s,
+                reviews: [],
+                reviewsLoading: false,
+                reviewsError: "Failed to load reviews",
+              }
+            : s
+        );
+        return {
+          ...prev,
+          [catId]: { ...prev[catId], skills: updatedSkills },
+        };
+      });
     }
   };
 
@@ -69,9 +130,10 @@ const ExploreSkills = () => {
         Explore Skills by Category
       </h1>
 
-      {/* Categories */}
       <section>
-        <h2 className="text-xl font-semibold text-secondary mb-4">Categories</h2>
+        <h2 className="text-xl font-semibold text-secondary mb-4">
+          Categories
+        </h2>
         {loadingCats ? (
           <LoadingSpinner text="Loading categories..." />
         ) : error ? (
@@ -86,11 +148,13 @@ const ExploreSkills = () => {
                   <SkillCard
                     skill={{
                       name: cat.name,
-                      category: { icon: cat.icon, description: cat.description }
+                      category: {
+                        icon: cat.icon,
+                        description: cat.description,
+                      },
                     }}
                     onClick={() => handleCategoryClick(cat)}
                   />
-                  {/* Skills dropdown, if expanded */}
                   {isOpen && (
                     <div className="w-full mt-4">
                       {catState.loading ? (
@@ -98,15 +162,55 @@ const ExploreSkills = () => {
                       ) : catState.error ? (
                         <ErrorBanner error={catState.error} />
                       ) : catState.skills.length === 0 ? (
-                        <div className="text-gray-500 text-center">No skills found.</div>
+                        <div className="text-gray-500 text-center">
+                          No skills found.
+                        </div>
                       ) : (
-                        <ul className="grid grid-cols-1 gap-2">
+                        <ul className="grid grid-cols-1 gap-4">
                           {catState.skills.map((skill) => (
                             <li
                               key={skill._id}
-                              className="bg-white rounded-lg shadow p-2 flex items-center justify-center font-medium text-primary capitalize border border-accent"
+                              className="bg-white rounded-lg shadow p-4 border border-accent"
                             >
-                              {skill.name.replace(/-/g, " ")}
+                              <div className="flex items-center justify-between">
+                                <span className="text-primary font-medium capitalize">
+                                  {skill.name.replace(/-/g, " ")}
+                                </span>
+                                <button
+                                  className="text-sm text-blue-600 hover:underline"
+                                  onClick={() =>
+                                    fetchSkillReviews(cat._id, skill._id)
+                                  }
+                                >
+                                  View Reviews
+                                </button>
+                              </div>
+
+                              {/* Reviews */}
+                              {skill.reviewsLoading ? (
+                                <p className="text-gray-500 text-sm mt-2">
+                                  Loading reviews...
+                                </p>
+                              ) : skill.reviewsError ? (
+                                <p className="text-red-500 text-sm mt-2">
+                                  {skill.reviewsError}
+                                </p>
+                              ) : skill.reviews && skill.reviews.length > 0 ? (
+                                <ul className="mt-2 space-y-1">
+                                  {skill.reviews.map((review) => (
+                                    <li
+                                      key={review._id}
+                                      className="text-sm text-gray-700 border-t pt-1"
+                                    >
+                                      <strong>{review.reviewerName}</strong>:{" "}
+                                      {review.comment || "No comment"}{" "}
+                                      <span className="text-yellow-500">
+                                        {"⭐".repeat(review.rating)}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
                             </li>
                           ))}
                         </ul>
