@@ -3,11 +3,24 @@ import { Link } from "react-router-dom";
 
 const Footer = () => (
   <footer className="bg-primary text-light py-10">
-    <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-      {/* Brand & Copyright */}
-      <div className="text-center md:text-left">
-        <span className="font-bold text-accent text-lg">SkillSwap</span>
-        <span className="ml-2 text-sm">
+    <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* Brand & Copyright with Logo */}
+      <div className="flex flex-col md:flex-row items-center gap-4">
+        <div className="flex items-center gap-2">
+          <img 
+            src="/SkillSwap_Logoo.png" // Same logo as navbar
+            alt="SkillSwap Logo"
+            className="h-11" // Slightly smaller than navbar
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+            }}
+          />
+          <span className="font-bold text-accent text-lg hidden sm:inline">
+            SkillSwap
+          </span>
+        </div>
+        <span className="text-sm text-center md:text-left">
           &copy; {new Date().getFullYear()} All rights reserved Icarus and Co.
         </span>
       </div>
@@ -33,6 +46,13 @@ const Footer = () => (
           Contact
         </Link>
       </div>
+    </div>
+
+    {/* Optional Footer Bottom */}
+    <div className="max-w-7xl mx-auto px-4 pt-6 mt-6 border-t border-t-secondary/10">
+      <p className="text-xs text-center text-light/60">
+        Made with ❤️ for skill enthusiasts worldwide
+      </p>
     </div>
   </footer>
 );

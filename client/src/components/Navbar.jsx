@@ -57,13 +57,16 @@ const Navbar = () => {
   return (
     <nav className="bg-primary text-white sticky top-0 z-50 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        {/* Brand */}
+        {/* Brand - Logo with text */}
         <Link
           to="/"
-          className="text-2xl font-bold tracking-tight text-light hover:text-accent transition"
+          className="flex items-center gap-2"
           onClick={handleNavClick}
         >
-          SkillSwap
+          <img src="/SkillSwap_Logoo.png" alt="SkillSwap Logo" className="h-12" />
+          <span className="text-2xl font-bold tracking-tight text-light hover:text-accent transition">
+            SkillSwap
+          </span>
         </Link>
 
         {/* Hamburger (mobile) */}

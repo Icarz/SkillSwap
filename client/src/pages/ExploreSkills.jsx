@@ -4,7 +4,7 @@ import axios from "axios";
 import SkillCard from "../components/SkillCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
-import { useAuth } from "../contexts/AuthContext";
+// import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -13,7 +13,6 @@ const ExploreSkills = () => {
   const [expanded, setExpanded] = useState({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState("");
-  const { token } = useAuth(); // grab token from context
 
   useEffect(() => {
     setLoadingCats(true);
@@ -46,19 +45,12 @@ const ExploreSkills = () => {
       axios
         .get(`${API_BASE}/categories/${cat._id}/skills`)
         .then((res) => {
-          const skillsWithReviewsState = res.data.map((skill) => ({
-            ...skill,
-            reviews: [],
-            reviewsLoading: false,
-            reviewsError: "",
-          }));
-
           setExpanded((prev) => ({
             ...prev,
             [cat._id]: {
               loading: false,
               error: "",
-              skills: skillsWithReviewsState,
+              skills: res.data,
             },
           }));
         })
@@ -72,55 +64,6 @@ const ExploreSkills = () => {
             },
           }));
         });
-    }
-  };
-
-  const fetchSkillReviews = async (catId, skillId) => {
-    setExpanded((prev) => {
-      const updatedSkills = prev[catId].skills.map((s) =>
-        s._id === skillId ? { ...s, reviewsLoading: true, reviewsError: "" } : s
-      );
-      return {
-        ...prev,
-        [catId]: { ...prev[catId], skills: updatedSkills },
-      };
-    });
-
-    try {
-      const res = await axios.get(`${API_BASE}/users/reviews/${skillId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setExpanded((prev) => {
-        const updatedSkills = prev[catId].skills.map((s) =>
-          s._id === skillId
-            ? { ...s, reviews: res.data, reviewsLoading: false }
-            : s
-        );
-        return {
-          ...prev,
-          [catId]: { ...prev[catId], skills: updatedSkills },
-        };
-      });
-    } catch (err) {
-      setExpanded((prev) => {
-        const updatedSkills = prev[catId].skills.map((s) =>
-          s._id === skillId
-            ? {
-                ...s,
-                reviews: [],
-                reviewsLoading: false,
-                reviewsError: "Failed to load reviews",
-              }
-            : s
-        );
-        return {
-          ...prev,
-          [catId]: { ...prev[catId], skills: updatedSkills },
-        };
-      });
     }
   };
 
@@ -172,45 +115,9 @@ const ExploreSkills = () => {
                               key={skill._id}
                               className="bg-white rounded-lg shadow p-4 border border-accent"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="text-primary font-medium capitalize">
-                                  {skill.name.replace(/-/g, " ")}
-                                </span>
-                                <button
-                                  className="text-sm text-blue-600 hover:underline"
-                                  onClick={() =>
-                                    fetchSkillReviews(cat._id, skill._id)
-                                  }
-                                >
-                                  View Reviews
-                                </button>
-                              </div>
-
-                              {/* Reviews */}
-                              {skill.reviewsLoading ? (
-                                <p className="text-gray-500 text-sm mt-2">
-                                  Loading reviews...
-                                </p>
-                              ) : skill.reviewsError ? (
-                                <p className="text-red-500 text-sm mt-2">
-                                  {skill.reviewsError}
-                                </p>
-                              ) : skill.reviews && skill.reviews.length > 0 ? (
-                                <ul className="mt-2 space-y-1">
-                                  {skill.reviews.map((review) => (
-                                    <li
-                                      key={review._id}
-                                      className="text-sm text-gray-700 border-t pt-1"
-                                    >
-                                      <strong>{review.reviewerName}</strong>:{" "}
-                                      {review.comment || "No comment"}{" "}
-                                      <span className="text-yellow-500">
-                                        {"⭐".repeat(review.rating)}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : null}
+                              <span className="text-primary font-medium capitalize">
+                                {skill.name.replace(/-/g, " ")}
+                              </span>
                             </li>
                           ))}
                         </ul>

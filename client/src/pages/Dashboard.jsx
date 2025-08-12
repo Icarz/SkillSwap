@@ -13,6 +13,7 @@ import {
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 import TransactionItem from "../components/TransactionItem";
+
 ChartJS.register(BarElement, CategoryScale, LinearScale);
 
 // Helper: Get initials from name/email
@@ -29,7 +30,14 @@ const getInitials = (user) => {
   return "";
 };
 
-const API_BASE = "http://localhost:5000/api"; // Adjust if needed
+// Helper: Get avatar URL
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith("http")) return avatarPath;
+  return `http://localhost:5000${avatarPath}`;
+};
+
+const API_BASE = "http://localhost:5000/api";
 
 const Dashboard = () => {
   const { token } = useAuth();
@@ -70,7 +78,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setTransactions(res.data); // We'll filter/slice below
+        setTransactions(res.data); 
         setLoadingTx(false);
       })
       .catch(() => {
@@ -88,7 +96,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setMessages(res.data); // We'll slice below
+        setMessages(res.data);
         setLoadingMsg(false);
       })
       .catch(() => {
@@ -129,8 +137,6 @@ const Dashboard = () => {
       ? transactions.slice(0, 5)
       : transactions.filter((tx) => tx.status === txFilter).slice(0, 5);
 
-  // TransactionItem action handlers (no-op here, just for demo)
-
   if (loading) {
     return <LoadingSpinner text="Loading dashboard..." />;
   }
@@ -153,7 +159,33 @@ const Dashboard = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        {/* Avatar Preview Card */}
+        <div className="bg-light rounded-xl p-4 text-center flex flex-col items-center">
+          {profile.avatar ? (
+            <img
+              src={getAvatarUrl(profile.avatar)}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover mb-2"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = null;
+                e.target.outerHTML = `
+                  <div class="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold mb-2">
+                    ${getInitials(profile).slice(0, 2)}
+                  </div>
+                `;
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold mb-2">
+              {getInitials(profile).slice(0, 2)}
+            </div>
+          )}
+          <div className="text-xs text-secondary">Profile</div>
+        </div>
+        
+        {/* Existing Stats Cards */}
         <div className="bg-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-primary">
             {profile.skills?.length || 0}
@@ -196,9 +228,28 @@ const Dashboard = () => {
 
       {/* User Overview & Quick Links */}
       <div className="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row items-center gap-8 mb-8">
-        <div className="w-20 h-20 rounded-full bg-accent text-white flex items-center justify-center text-3xl font-bold">
-          {getInitials(profile)}
-        </div>
+        {/* Avatar Display */}
+        {profile.avatar ? (
+          <img
+            src={getAvatarUrl(profile.avatar)}
+            alt="Profile"
+            className="w-20 h-20 rounded-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = null;
+              e.target.outerHTML = `
+                <div class="w-20 h-20 rounded-full bg-accent text-white flex items-center justify-center text-3xl font-bold">
+                  ${getInitials(profile)}
+                </div>
+              `;
+            }}
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-accent text-white flex items-center justify-center text-3xl font-bold">
+            {getInitials(profile)}
+          </div>
+        )}
+        
         <div className="flex-1 w-full">
           <h1 className="text-2xl font-bold text-primary mb-1 capitalize">
             Welcome back, {profile.name}!
@@ -223,7 +274,8 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        {/* More Quick Links */}
+        
+        {/* Quick Links */}
         <div className="flex flex-col gap-2">
           <Link
             to="/explore-skills"
@@ -266,7 +318,6 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-primary">
               Recent Transactions
             </h2>
-            {/* Filter Dropdown */}
             <select
               className="border rounded px-2 py-1 text-sm"
               value={txFilter}
