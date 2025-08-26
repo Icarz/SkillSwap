@@ -6,16 +6,16 @@ const categorySchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
   },
   icon: {
     type: String,
-    default: "🛠️" // Default emoji icon
+    default: "🛠️", // Default emoji icon
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model("Category", categorySchema);

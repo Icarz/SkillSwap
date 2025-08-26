@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useParams } from "react-router-dom";
+import CategorySkillInput from "../components/CategorySkillInput";
 
 // Helper: Get initials from name/email
 const getInitials = (user) => {
@@ -21,7 +22,7 @@ const getInitials = (user) => {
 const API_BASE = "http://localhost:5000/api";
 
 const Profile = () => {
-  const { token, user: authUser,updateUser } = useAuth();
+  const { token, user: authUser, updateUser } = useAuth();
   const { userId } = useParams();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -32,8 +33,8 @@ const Profile = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState({
     bio: "",
-    skills: "",
-    learning: "",
+    skills: [], // Now an array of objects
+    learning: [], // Now an array of objects
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
@@ -42,15 +43,32 @@ const Profile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const fileInputRef = useRef();
 
   // Get full avatar URL
-const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return null;
-  if (avatarPath.startsWith("http")) return avatarPath;
-  // In development, use full URL including /api prefix
-  return `http://localhost:5000${avatarPath}`;
-};
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    if (avatarPath.startsWith("http")) return avatarPath;
+    return `http://localhost:5000${avatarPath}`;
+  };
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const res = await axios.get(`${API_BASE}/categories`);
+        setCategories(res.data);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Fetch profile
   useEffect(() => {
@@ -69,8 +87,8 @@ const getAvatarUrl = (avatarPath) => {
         if (!userId || (authUser && res.data._id === authUser._id)) {
           setEditData({
             bio: res.data.bio || "",
-            skills: (res.data.skills || []).map((s) => s.name).join(", "),
-            learning: (res.data.learning || []).map((s) => s.name).join(", "),
+            skills: res.data.skills || [], // Keep full skill objects
+            learning: res.data.learning || [], // Keep full skill objects
           });
           setAvatarPreview(getAvatarUrl(res.data.avatar));
         }
@@ -127,7 +145,7 @@ const getAvatarUrl = (avatarPath) => {
         },
       });
 
-         if (res.data.user) {
+      if (res.data.user) {
         updateUser(res.data.user); // Immediate sync with Navbar
       }
 
@@ -139,7 +157,32 @@ const getAvatarUrl = (avatarPath) => {
       setAvatarUploading(false);
     }
   };
-  
+
+  // Handler for skill changes
+  const handleSkillChange = (field, index, updatedSkill) => {
+    setEditData((prev) => ({
+      ...prev,
+      [field]: prev[field].map((skill, i) =>
+        i === index ? updatedSkill : skill
+      ),
+    }));
+  };
+
+  // Handler for adding skills
+  const addSkill = (field) => {
+    setEditData((prev) => ({
+      ...prev,
+      [field]: [...prev[field], { name: "", category: "" }],
+    }));
+  };
+
+  // Handler for removing skills
+  const removeSkill = (field, index) => {
+    setEditData((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index),
+    }));
+  };
 
   // Handle profile update
   const handleEditSubmit = async (e) => {
@@ -153,23 +196,22 @@ const getAvatarUrl = (avatarPath) => {
       const uploadedAvatar = avatarFile ? await uploadAvatar() : null;
       if (avatarFile && !uploadedAvatar) return;
 
-      // Update profile data
-      const res = await axios.put(
-        `${API_BASE}/users/me`,
-        {
-          bio: editData.bio,
-          skills: editData.skills
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          learning: editData.learning
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          ...(uploadedAvatar ? { avatar: uploadedAvatar } : {}),
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Prepare data for API
+      // Prepare data for API - ADD NULL FILTER
+      const updateData = {
+        bio: editData.bio,
+        skills: editData.skills
+          .filter((s) => s != null) // <-- ADD THIS to remove null values
+          .filter((s) => s.name && s.category),
+        learning: editData.learning
+          .filter((s) => s != null) // <-- ADD THIS to remove null values
+          .filter((s) => s.name && s.category),
+        ...(uploadedAvatar ? { avatar: uploadedAvatar } : {}),
+      };
+
+      const res = await axios.put(`${API_BASE}/users/me`, updateData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setProfile(res.data);
       updateUser(res.data);
@@ -366,11 +408,12 @@ const getAvatarUrl = (avatarPath) => {
       </div>
 
       {/* Edit Profile Modal */}
+      {/* Edit Profile Modal */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-accent text-2xl"
+              className="absolute top-4 right-4 text-gray-500 hover:text-accent text-2xl"
               onClick={() => setEditOpen(false)}
               aria-label="Close"
             >
@@ -383,12 +426,12 @@ const getAvatarUrl = (avatarPath) => {
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
               {/* Avatar Upload */}
-              <div>
-                <label className="block text-secondary font-semibold mb-1">
+              <div className="space-y-2">
+                <label className="block text-secondary font-semibold">
                   Avatar
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold overflow-hidden">
+                  <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
                     {avatarPreview ? (
                       <img
                         src={avatarPreview}
@@ -405,89 +448,223 @@ const getAvatarUrl = (avatarPath) => {
                       getInitials(profile)
                     )}
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="block"
-                    onChange={handleAvatarChange}
-                    ref={fileInputRef}
-                    disabled={avatarUploading || editLoading}
-                  />
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-accent file:text-white
+                  hover:file:bg-secondary"
+                      onChange={handleAvatarChange}
+                      ref={fileInputRef}
+                      disabled={avatarUploading || editLoading}
+                    />
+                    {avatarUploading && (
+                      <div className="text-accent text-xs animate-pulse">
+                        Uploading avatar...
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {avatarError && (
-                  <div className="text-red-600 text-sm mt-1">{avatarError}</div>
-                )}
-                {avatarUploading && (
-                  <div className="text-accent text-xs mt-1 animate-pulse">
-                    Uploading avatar...
-                  </div>
+                  <div className="text-red-600 text-sm">{avatarError}</div>
                 )}
               </div>
 
               {/* Bio */}
-              <div>
-                <label className="block text-secondary font-semibold mb-1">
+              <div className="space-y-2">
+                <label className="block text-secondary font-semibold">
                   Bio
                 </label>
                 <textarea
                   name="bio"
                   value={editData.bio}
-                  onChange={handleEditSubmit}
-                  className="w-full border rounded p-2"
+                  onChange={(e) =>
+                    setEditData({ ...editData, bio: e.target.value })
+                  }
+                  className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-accent focus:border-transparent"
                   rows={3}
+                  placeholder="Tell us about yourself..."
                 />
               </div>
 
               {/* Skills */}
-              <div>
-                <label className="block text-secondary font-semibold mb-1">
-                  Skills{" "}
-                  <span className="text-xs text-gray-400">
-                    (comma separated)
-                  </span>
+              <div className="space-y-2">
+                <label className="block text-secondary font-semibold">
+                  Skills
                 </label>
-                <input
-                  name="skills"
-                  value={editData.skills}
-                  onChange={handleEditSubmit}
-                  className="w-full border rounded p-2"
-                  placeholder="e.g. react,nodejs,python"
-                />
+                <div className="space-y-3">
+                  {editData.skills.map((skill, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <CategorySkillInput
+                        skill={skill}
+                        categories={categories}
+                        onChange={(updated) =>
+                          handleSkillChange("skills", index, updated)
+                        }
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSkill("skills", index)}
+                        className="mt-2 text-red-500 hover:text-red-700"
+                        title="Remove skill"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => addSkill("skills")}
+                  className="mt-2 text-sm text-accent hover:text-secondary flex items-center gap-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Add Skill
+                </button>
               </div>
 
               {/* Learning */}
-              <div>
-                <label className="block text-secondary font-semibold mb-1">
-                  Learning{" "}
-                  <span className="text-xs text-gray-400">
-                    (comma separated)
-                  </span>
+              <div className="space-y-2">
+                <label className="block text-secondary font-semibold">
+                  Learning Goals
                 </label>
-                <input
-                  name="learning"
-                  value={editData.learning}
-                  onChange={handleEditSubmit}
-                  className="w-full border rounded p-2"
-                  placeholder="e.g. spanish,photography"
-                />
+                <div className="space-y-3">
+                  {editData.learning.map((skill, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <CategorySkillInput
+                        skill={skill}
+                        categories={categories}
+                        onChange={(updated) =>
+                          handleSkillChange("learning", index, updated)
+                        }
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSkill("learning", index)}
+                        className="mt-2 text-red-500 hover:text-red-700"
+                        title="Remove learning goal"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => addSkill("learning")}
+                  className="mt-2 text-sm text-accent hover:text-secondary flex items-center gap-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Add Learning Goal
+                </button>
               </div>
 
               {/* Status Messages */}
               {editError && (
-                <div className="text-red-600 text-sm">{editError}</div>
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+                  {editError}
+                </div>
               )}
               {editSuccess && (
-                <div className="text-green-600 text-sm">{editSuccess}</div>
+                <div className="p-3 bg-green-50 text-green-600 text-sm rounded-lg">
+                  {editSuccess}
+                </div>
               )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-accent text-white py-2 rounded-lg font-semibold hover:bg-secondary transition"
-                disabled={editLoading || avatarUploading}
-              >
-                {editLoading ? "Saving..." : "Save Changes"}
-              </button>
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  disabled={editLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-accent text-white rounded-lg font-semibold hover:bg-secondary disabled:opacity-70 flex items-center gap-2"
+                  disabled={editLoading || avatarUploading}
+                >
+                  {editLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>

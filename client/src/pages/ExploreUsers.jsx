@@ -33,8 +33,7 @@ const ExploreUsers = () => {
       setUsers(res.data);
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          "Failed to search users. Please try again."
+        err.response?.data?.error || "Failed to search users. Please try again."
       );
     } finally {
       setLoading(false);

@@ -6,17 +6,17 @@ const skillSchema = new mongoose.Schema({
     required: true,
     trim: true,
     lowercase: true,
-    unique: true // Prevent duplicate skills
+    unique: true, // Prevent duplicate skills
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
-    required: true
+    required: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Index for faster queries

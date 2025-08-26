@@ -88,52 +88,125 @@ const getUserById = async (req, res) => {
 // Update current user profile
 const updateProfile = async (req, res) => {
   try {
+    console.log("=== UPDATE PROFILE REQUEST BODY ===");
+    console.log("req.body:", JSON.stringify(req.body, null, 2));
+    
     const updateData = {};
     const { bio, skills, learning } = req.body;
+    
+    console.log("Raw skills from request:", skills);
+    console.log("Raw learning from request:", learning);
 
-    if (bio) updateData.bio = bio;
+    if (bio) {
+      console.log("Bio found, adding to updateData:", bio);
+      updateData.bio = bio;
+    }
 
     // Get default category for new skills
+    console.log("Looking for default category:", DEFAULT_CATEGORY);
     const defaultCategory = await Category.findOne({ name: DEFAULT_CATEGORY });
     if (!defaultCategory) {
+      console.error("Default category not found:", DEFAULT_CATEGORY);
       throw new Error("Default category not configured");
     }
+    console.log("Default category found:", defaultCategory._id);
 
     // Process skills with category assignment
     const processSkills = async (arr, field) => {
-      if (!Array.isArray(arr)) return;
+      console.log(`\n=== PROCESSING ${field.toUpperCase()} ===`);
+      console.log(`Input ${field} array:`, arr);
+      
+      if (!Array.isArray(arr)) {
+        console.log(`${field} is not an array, skipping`);
+        return;
+      }
+
+      // First, filter out any null/undefined items from the array
+      const validItems = arr.filter(item => item != null);
+      console.log(`Valid items after null filter for ${field}:`, validItems);
+      
+      if (validItems.length === 0) {
+        console.log(`No valid items found for ${field}, skipping`);
+        updateData[field] = [];
+        return;
+      }
 
       const skillIds = await Promise.all(
-        arr.map(async (name) => {
-          const skill = await Skill.findOneAndUpdate(
-            { name: { $regex: new RegExp(`^${name}$`, "i") } },
-            {
-              $setOnInsert: {
-                name,
-                category: defaultCategory._id,
+        validItems.map(async (skillObj, index) => {
+          console.log(`\nProcessing ${field} item ${index + 1}:`, skillObj);
+          
+          // Add null check for skillObj itself
+          if (!skillObj) {
+            console.log(`Item ${index + 1} is null, skipping`);
+            return null;
+          }
+          
+          if (!skillObj.name) {
+            console.log(`Item ${index + 1} has no name property:`, skillObj);
+            return null;
+          }
+
+          const name = skillObj.name;
+          console.log(`Extracted name: '${name}'`);
+          
+          if (!name || name.trim() === "") {
+            console.log(`Item ${index + 1} has empty name, skipping`);
+            return null;
+          }
+
+          const trimmedName = name.trim().toLowerCase();
+          console.log(`Looking for skill: '${trimmedName}'`);
+          
+          try {
+            const skill = await Skill.findOneAndUpdate(
+              { name: { $regex: new RegExp(`^${trimmedName}$`, "i") } },
+              {
+                $setOnInsert: {
+                  name: trimmedName,
+                  category: skillObj.category || defaultCategory._id,
+                },
               },
-            },
-            { upsert: true, new: true }
-          );
-          return skill._id;
+              { upsert: true, new: true, runValidators: true }
+            );
+            
+            console.log(`Skill processed successfully: ${skill._id} - '${skill.name}'`);
+            return skill._id;
+          } catch (dbError) {
+            console.error(`Database error processing skill '${trimmedName}':`, dbError.message);
+            return null;
+          }
         })
       );
 
-      updateData[field] = skillIds;
+      // Filter out any null entries
+      const filteredSkillIds = skillIds.filter(id => id !== null);
+      console.log(`Final ${field} IDs:`, filteredSkillIds);
+      updateData[field] = filteredSkillIds;
     };
 
+    console.log("\n=== STARTING SKILL PROCESSING ===");
     await Promise.all([
       processSkills(skills, "skills"),
       processSkills(learning, "learning"),
     ]);
 
+    console.log("\n=== FINAL UPDATE DATA ===");
+    console.log("updateData:", JSON.stringify(updateData, null, 2));
+
+    console.log("Updating user in database...");
     const updatedUser = await populateUser(
-      User.findByIdAndUpdate(req.user.id, { $set: updateData }, { new: true })
+      User.findByIdAndUpdate(
+        req.user.id, 
+        { $set: updateData }, 
+        { new: true, runValidators: true }
+      )
     );
 
+    console.log("User updated successfully");
     res.json(updatedUser);
   } catch (err) {
-    console.error("[updateProfile] Error:", err.message, err.stack);
+    console.error("[updateProfile] Error:", err.message);
+    console.error("Error stack:", err.stack);
     res.status(500).json({
       error: "Profile update failed",
       ...(process.env.NODE_ENV === "development" && { details: err.message }),

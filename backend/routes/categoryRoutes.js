@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   getAllCategories,
   getSkillsByCategory,
-  createCategory
+  createCategory,
 } = require("../controllers/categoryController");
 const authMiddleware = require("../middleware/authMiddleware");
 // const adminMiddleware = require("../middleware/adminMiddleware"); // You'll need to create this
