@@ -42,7 +42,7 @@ const API_BASE = "http://localhost:5000/api";
 
 const Dashboard = () => {
   const { token } = useAuth();
-  const { socket, isConnected, joinUserRoom } = useSocket();
+  const { socket, joinUserRoom } = useSocket();
   const [profile, setProfile] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -205,17 +205,6 @@ const Dashboard = () => {
           </Link>
         </div>
       )}
-
-      {/* Socket Connection Status */}
-      <div
-        className={`fixed top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold z-50 ${
-          isConnected
-            ? "bg-green-100 text-green-800"
-            : "bg-red-100 text-red-800"
-        }`}
-      >
-        {isConnected ? "🟢 Online" : "🔴 Offline"}
-      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">

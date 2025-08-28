@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useSocket } from "../hooks/useSocket";
 
 // Helper: Get initials from user name/email
 const getInitials = (userData) => {
@@ -28,6 +29,7 @@ const getAvatarUrl = (avatarPath) => {
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { isConnected } = useSocket();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -187,6 +189,19 @@ const Navbar = () => {
                     <div className="px-4 py-2 text-sm font-semibold border-b border-gray-200">
                       {user.name || user.email}
                     </div>
+                    
+                    {/* Connection Status */}
+                    <div className="px-4 py-2 text-sm border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          isConnected ? "bg-green-500" : "bg-red-500"
+                        }`}></div>
+                        <span className="text-primary">
+                          {isConnected ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                    </div>
+                    
                     <Link
                       to="/profile"
                       className="block px-4 py-2 hover:bg-light text-primary"
@@ -258,6 +273,17 @@ const Navbar = () => {
               >
                 Profile
               </Link>
+              
+              {/* Mobile Connection Status */}
+              <div className="flex items-center gap-2 px-2 py-1">
+                <div className={`w-2 h-2 rounded-full ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}></div>
+                <span className="text-sm">
+                  {isConnected ? "Online" : "Offline"}
+                </span>
+              </div>
+              
               <button
                 onClick={handleLogout}
                 className="block w-full text-left hover:text-accent mt-2"
