@@ -116,7 +116,8 @@ const ExploreSkills = () => {
                               className="bg-white rounded-lg shadow p-4 border border-accent"
                             >
                               <span className="text-primary font-medium capitalize">
-                                {skill.name.replace(/-/g, " ")}
+                                {skill.name?.replace(/-/g, " ") ??
+                                  "Unnamed Skill"}
                               </span>
                             </li>
                           ))}

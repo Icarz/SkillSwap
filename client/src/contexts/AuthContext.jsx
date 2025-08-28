@@ -5,6 +5,7 @@ import { createContext, useContext, useState} from "react";
 const AuthContext = createContext();
 
 // 2. Export the hook for easier usage
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 // 3. Define the provider component

@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useParams } from "react-router-dom";
 import CategorySkillInput from "../components/CategorySkillInput";
+import { useSocket } from "../hooks/useSocket";
 
 // Helper: Get initials from name/email
 const getInitials = (user) => {
@@ -23,6 +24,7 @@ const API_BASE = "http://localhost:5000/api";
 
 const Profile = () => {
   const { token, user: authUser, updateUser } = useAuth();
+  const { socket } = useSocket();
   const { userId } = useParams();
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -44,7 +46,12 @@ const Profile = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [, setLoadingCategories] = useState(false);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageError, setMessageError] = useState("");
+  const [messageSuccess, setMessageSuccess] = useState("");
   const fileInputRef = useRef();
 
   // Get full avatar URL
@@ -226,6 +233,43 @@ const Profile = () => {
     }
   };
 
+  // Handle sending message
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!messageContent.trim() || !profile || sendingMessage) return;
+
+    setSendingMessage(true);
+    setMessageError("");
+    setMessageSuccess("");
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/messages`,
+        {
+          receiver: profile._id,
+          content: messageContent,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Emit via Socket.IO for real-time delivery if socket is connected
+      if (socket) {
+        socket.emit("send-message", response.data.data);
+      }
+
+      setMessageSuccess("Message sent successfully!");
+      setMessageContent("");
+      setTimeout(() => {
+        setMessageModalOpen(false);
+        setMessageSuccess("");
+      }, 1500);
+    } catch (err) {
+      setMessageError(err.response?.data?.error || "Failed to send message.");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   const isOwnProfile =
     (!userId && authUser) ||
     (userId && authUser && profile?._id === authUser._id);
@@ -288,16 +332,35 @@ const Profile = () => {
 
         {/* Profile Info */}
         <div className="flex-1 w-full">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-primary mb-1 capitalize">
               {profile.name}
             </h1>
-            {isOwnProfile && (
+            {isOwnProfile ? (
               <button
-                className="ml-2 px-3 py-1 bg-accent text-white rounded hover:bg-secondary text-sm"
+                className="px-3 py-1 bg-accent text-white rounded hover:bg-secondary text-sm"
                 onClick={() => setEditOpen(true)}
               >
                 Edit Profile
+              </button>
+            ) : (
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2"
+                onClick={() => setMessageModalOpen(true)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Send Message
               </button>
             )}
           </div>
@@ -359,6 +422,108 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Send Message Modal */}
+      {messageModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-accent text-2xl"
+              onClick={() => {
+                setMessageModalOpen(false);
+                setMessageError("");
+                setMessageSuccess("");
+                setMessageContent("");
+              }}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-xl font-bold text-primary mb-4">
+              Send Message to {profile.name}
+            </h2>
+
+            <form onSubmit={handleSendMessage} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-secondary font-semibold">
+                  Message
+                </label>
+                <textarea
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                  className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-accent focus:border-transparent"
+                  rows={4}
+                  placeholder="Write your message here..."
+                  required
+                  disabled={sendingMessage}
+                />
+              </div>
+
+              {messageError && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+                  {messageError}
+                </div>
+              )}
+
+              {messageSuccess && (
+                <div className="p-3 bg-green-50 text-green-600 text-sm rounded-lg">
+                  {messageSuccess}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessageModalOpen(false);
+                    setMessageError("");
+                    setMessageSuccess("");
+                    setMessageContent("");
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  disabled={sendingMessage}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-70 flex items-center gap-2"
+                  disabled={sendingMessage || !messageContent.trim()}
+                >
+                  {sendingMessage ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Message"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Reviews Section */}
       <div className="mt-10">
         <h2 className="text-xl font-semibold text-primary mb-4">Reviews</h2>
@@ -407,7 +572,6 @@ const Profile = () => {
         )}
       </div>
 
-      {/* Edit Profile Modal */}
       {/* Edit Profile Modal */}
       {editOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">

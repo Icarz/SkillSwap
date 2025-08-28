@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import { useSocket } from "../hooks/useSocket";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import {
@@ -41,6 +42,7 @@ const API_BASE = "http://localhost:5000/api";
 
 const Dashboard = () => {
   const { token } = useAuth();
+  const { socket, isConnected, joinUserRoom } = useSocket();
   const [profile, setProfile] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -51,6 +53,8 @@ const Dashboard = () => {
   const [errorTx, setErrorTx] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [txFilter, setTxFilter] = useState("all");
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [, setNotifications] = useState([]);
 
   // Fetch user profile
   useEffect(() => {
@@ -78,7 +82,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setTransactions(res.data); 
+        setTransactions(res.data);
         setLoadingTx(false);
       })
       .catch(() => {
@@ -104,6 +108,50 @@ const Dashboard = () => {
         setLoadingMsg(false);
       });
   }, [profile, token]);
+
+  // Socket.IO: Listen for real-time notifications
+  useEffect(() => {
+    if (socket && profile) {
+      // Join the user's room upon loading the dashboard
+      joinUserRoom();
+
+      // Listen for the 'new-notification' event from the server
+      socket.on("new-notification", (notificationData) => {
+        // Update notification count
+        setNotificationCount((prevCount) => prevCount + 1);
+
+        // Store the notification data for potential future use
+        setNotifications((prev) => [notificationData, ...prev]);
+
+        // Show browser notification if permitted
+        if (Notification.permission === "granted") {
+          new Notification("SkillSwap Message", {
+            body: notificationData.message,
+            icon: "/favicon.ico",
+          });
+        }
+
+        console.log("📢 New notification received:", notificationData);
+      });
+
+      // Cleanup on component unmount
+      return () => {
+        socket.off("new-notification");
+      };
+    }
+  }, [socket, profile, joinUserRoom]);
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Reset notification count when user visits messages page
+  const handleMessagesLinkClick = () => {
+    setNotificationCount(0);
+  };
 
   // Stats
   const pendingCount = transactions.filter(
@@ -158,6 +206,17 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Socket Connection Status */}
+      <div
+        className={`fixed top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold z-50 ${
+          isConnected
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+        }`}
+      >
+        {isConnected ? "🟢 Online" : "🔴 Offline"}
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {/* Avatar Preview Card */}
@@ -184,7 +243,7 @@ const Dashboard = () => {
           )}
           <div className="text-xs text-secondary">Profile</div>
         </div>
-        
+
         {/* Existing Stats Cards */}
         <div className="bg-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-primary">
@@ -204,11 +263,18 @@ const Dashboard = () => {
           </div>
           <div className="text-xs text-secondary">Transactions</div>
         </div>
-        <div className="bg-light rounded-xl p-4 text-center">
+
+        {/* Messages Card with Notification Badge */}
+        <div className="bg-light rounded-xl p-4 text-center relative">
           <div className="text-2xl font-bold text-primary">
             {messages.length}
           </div>
           <div className="text-xs text-secondary">Messages</div>
+          {notificationCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+              {notificationCount}
+            </span>
+          )}
         </div>
       </div>
 
@@ -249,7 +315,7 @@ const Dashboard = () => {
             {getInitials(profile)}
           </div>
         )}
-        
+
         <div className="flex-1 w-full">
           <h1 className="text-2xl font-bold text-primary mb-1 capitalize">
             Welcome back, {profile.name}!
@@ -272,9 +338,19 @@ const Dashboard = () => {
               <span className="font-semibold text-primary">{profile.role}</span>
               <span className="text-xs text-secondary ml-1">Role</span>
             </div>
+            {notificationCount > 0 && (
+              <div>
+                <span className="font-semibold text-red-500">
+                  {notificationCount}
+                </span>
+                <span className="text-xs text-secondary ml-1">
+                  New messages
+                </span>
+              </div>
+            )}
           </div>
         </div>
-        
+
         {/* Quick Links */}
         <div className="flex flex-col gap-2">
           <Link
@@ -303,9 +379,15 @@ const Dashboard = () => {
           </Link>
           <Link
             to="/messages"
-            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center"
+            className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition text-center relative"
+            onClick={handleMessagesLinkClick}
           >
             My Messages
+            {notificationCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                {notificationCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>
@@ -355,9 +437,16 @@ const Dashboard = () => {
 
         {/* Recent Messages */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-xl font-semibold text-primary mb-4">
-            Recent Messages
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-primary">
+              Recent Messages
+            </h2>
+            {notificationCount > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 animate-pulse">
+                {notificationCount} new
+              </span>
+            )}
+          </div>
           {loadingMsg ? (
             <LoadingSpinner text="Loading messages..." />
           ) : errorMsg ? (
@@ -395,6 +484,7 @@ const Dashboard = () => {
             <Link
               to="/messages"
               className="text-accent hover:underline text-sm"
+              onClick={handleMessagesLinkClick}
             >
               View all messages &rarr;
             </Link>
