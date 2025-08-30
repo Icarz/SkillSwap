@@ -90,10 +90,10 @@ const updateProfile = async (req, res) => {
   try {
     console.log("=== UPDATE PROFILE REQUEST BODY ===");
     console.log("req.body:", JSON.stringify(req.body, null, 2));
-    
+
     const updateData = {};
     const { bio, skills, learning } = req.body;
-    
+
     console.log("Raw skills from request:", skills);
     console.log("Raw learning from request:", learning);
 
@@ -115,16 +115,16 @@ const updateProfile = async (req, res) => {
     const processSkills = async (arr, field) => {
       console.log(`\n=== PROCESSING ${field.toUpperCase()} ===`);
       console.log(`Input ${field} array:`, arr);
-      
+
       if (!Array.isArray(arr)) {
         console.log(`${field} is not an array, skipping`);
         return;
       }
 
       // First, filter out any null/undefined items from the array
-      const validItems = arr.filter(item => item != null);
+      const validItems = arr.filter((item) => item != null);
       console.log(`Valid items after null filter for ${field}:`, validItems);
-      
+
       if (validItems.length === 0) {
         console.log(`No valid items found for ${field}, skipping`);
         updateData[field] = [];
@@ -134,13 +134,13 @@ const updateProfile = async (req, res) => {
       const skillIds = await Promise.all(
         validItems.map(async (skillObj, index) => {
           console.log(`\nProcessing ${field} item ${index + 1}:`, skillObj);
-          
+
           // Add null check for skillObj itself
           if (!skillObj) {
             console.log(`Item ${index + 1} is null, skipping`);
             return null;
           }
-          
+
           if (!skillObj.name) {
             console.log(`Item ${index + 1} has no name property:`, skillObj);
             return null;
@@ -148,7 +148,7 @@ const updateProfile = async (req, res) => {
 
           const name = skillObj.name;
           console.log(`Extracted name: '${name}'`);
-          
+
           if (!name || name.trim() === "") {
             console.log(`Item ${index + 1} has empty name, skipping`);
             return null;
@@ -156,7 +156,7 @@ const updateProfile = async (req, res) => {
 
           const trimmedName = name.trim().toLowerCase();
           console.log(`Looking for skill: '${trimmedName}'`);
-          
+
           try {
             const skill = await Skill.findOneAndUpdate(
               { name: { $regex: new RegExp(`^${trimmedName}$`, "i") } },
@@ -168,18 +168,23 @@ const updateProfile = async (req, res) => {
               },
               { upsert: true, new: true, runValidators: true }
             );
-            
-            console.log(`Skill processed successfully: ${skill._id} - '${skill.name}'`);
+
+            console.log(
+              `Skill processed successfully: ${skill._id} - '${skill.name}'`
+            );
             return skill._id;
           } catch (dbError) {
-            console.error(`Database error processing skill '${trimmedName}':`, dbError.message);
+            console.error(
+              `Database error processing skill '${trimmedName}':`,
+              dbError.message
+            );
             return null;
           }
         })
       );
 
       // Filter out any null entries
-      const filteredSkillIds = skillIds.filter(id => id !== null);
+      const filteredSkillIds = skillIds.filter((id) => id !== null);
       console.log(`Final ${field} IDs:`, filteredSkillIds);
       updateData[field] = filteredSkillIds;
     };
@@ -196,8 +201,8 @@ const updateProfile = async (req, res) => {
     console.log("Updating user in database...");
     const updatedUser = await populateUser(
       User.findByIdAndUpdate(
-        req.user.id, 
-        { $set: updateData }, 
+        req.user.id,
+        { $set: updateData },
         { new: true, runValidators: true }
       )
     );
@@ -333,19 +338,30 @@ const findMatches = async (req, res) => {
 // Reviews (unchanged but with improved error handling)
 const createReview = async (req, res) => {
   try {
-    const { reviewedUserId, rating, comment } = req.body;
+    const { reviewedUser, rating, comment } = req.body;
 
-    if (![1, 2, 3, 4, 5].includes(Number(rating))) {
-      return res.status(400).json({ error: "Rating must be 1-5" });
+    // Check all required fields
+    if (!reviewedUser || !rating || !comment) {
+      return res
+        .status(400)
+        .json({ error: "reviewedUser, rating, and comment are required" });
     }
 
-    if (reviewedUserId === req.user.id) {
+    // Prevent self-review
+    if (reviewedUser === req.user.id) {
       return res.status(400).json({ error: "Cannot review yourself" });
     }
 
+    // Validate rating
+    const numericRating = Number(rating);
+    if (![1, 2, 3, 4, 5].includes(numericRating)) {
+      return res.status(400).json({ error: "Rating must be 1-5" });
+    }
+
+    // Prevent duplicate review
     const existingReview = await Review.findOne({
       reviewer: req.user.id,
-      reviewedUser: reviewedUserId,
+      reviewedUser,
     });
     if (existingReview) {
       return res.status(400).json({ error: "You already reviewed this user" });
@@ -353,12 +369,13 @@ const createReview = async (req, res) => {
 
     const review = new Review({
       reviewer: req.user.id,
-      reviewedUser: reviewedUserId,
-      rating,
+      reviewedUser,
+      rating: numericRating,
       comment,
     });
 
     await review.save();
+
     const populatedReview = await Review.findById(review._id).populate(
       "reviewer",
       "name avatar"

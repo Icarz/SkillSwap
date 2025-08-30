@@ -525,50 +525,149 @@ const Profile = () => {
       )}
 
       {/* Reviews Section */}
+      {/* Reviews Section */}
       <div className="mt-10">
         <h2 className="text-xl font-semibold text-primary mb-4">Reviews</h2>
+
         {loadingReviews ? (
           <div className="text-accent animate-pulse">Loading reviews...</div>
         ) : reviews.length === 0 ? (
           <div className="text-gray-400">No reviews yet.</div>
         ) : (
           <ul className="space-y-4">
-            {reviews.map((review) => (
-              <li
-                key={review._id}
-                className="bg-white rounded-lg shadow p-4 flex items-start gap-4"
-              >
-                <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold">
-                  {getInitials(review.reviewer)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">
-                      {review.reviewer?.name}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </span>
+            {Array.isArray(reviews) &&
+              reviews.map((review) => (
+                
+                <li
+                  key={review._id}
+                  className="bg-white rounded-lg shadow p-4 flex items-start gap-4"
+                >
+                  <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold">
+                    {getInitials(review.reviewer)}
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        className={
-                          i < review.rating
-                            ? "text-yellow-400"
-                            : "text-gray-300"
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-primary">
+                        {review.reviewer?.name}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span
+                          key={i}
+                          className={
+                            i < review.rating
+                              ? "text-yellow-400"
+                              : "text-gray-300"
+                          }
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-gray-700">{review.comment}</div>
+                  </div>
+
+                  {/* Delete own review */}
+                  {authUser && review.reviewer?._id?.toString() === authUser._id?.toString() (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await axios.delete(
+                            `${API_BASE}/reviews/${review._id}`,
+                            {
+                              headers: { Authorization: `Bearer ${token}` },
+                            }
+                          );
+                          setReviews((prev) =>
+                            prev.filter((r) => r._id !== review._id)
+                          );
+                        } catch (err) {
+                          console.error(err);
                         }
-                      >
+                      }}
+                      className="text-red-500 hover:text-red-700 text-sm ml-2"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </li>
+              ))}
+          </ul>
+        )}
+
+        {/* Add Review Form (only if viewing someone else's profile) */}
+        {authUser && profile._id !== authUser._id && (
+          <div className="mt-6 bg-white p-4 rounded-lg shadow">
+            <h3 className="font-semibold text-primary mb-2">Leave a Review</h3>
+            {reviews.some((r) => r.reviewer?._id === authUser._id) ? (
+              <p className="text-gray-500 text-sm">
+                You have already reviewed this user.
+              </p>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  const newReview = {
+                    rating: parseInt(formData.get("rating")),
+                    comment: formData.get("comment"),
+                    reviewedUser: profile._id,
+                  };
+                  try {
+                    const res = await axios.post(
+                      `${API_BASE}/users/review`,
+                      { ...newReview, toUser: profile._id },
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setReviews((prev) => [res.data, ...prev]);
+                    e.target.reset();
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                className="space-y-3"
+              >
+                {/* Rating */}
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <label key={star}>
+                      <input
+                        type="radio"
+                        name="rating"
+                        value={star}
+                        className="hidden"
+                        required
+                      />
+                      <span className="cursor-pointer text-gray-300 hover:text-yellow-400 peer-checked:text-yellow-400">
                         ★
                       </span>
-                    ))}
-                  </div>
-                  <div className="mt-2 text-gray-700">{review.comment}</div>
+                    </label>
+                  ))}
                 </div>
-              </li>
-            ))}
-          </ul>
+
+                {/* Comment */}
+                <textarea
+                  name="comment"
+                  placeholder="Write your review..."
+                  className="w-full border rounded-lg p-2 text-sm"
+                  rows={3}
+                  required
+                />
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Submit Review
+                </button>
+              </form>
+            )}
+          </div>
         )}
       </div>
 
