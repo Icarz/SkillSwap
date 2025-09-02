@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { Link } from "react-router-dom";
-import TransactionItem from "../components/TransactionItem"; // <-- Import the component
+import TransactionItem from "../components/TransactionItem";
 
-const API_BASE = "http://localhost:5000/api"; // Adjust if needed
+const API_BASE = "http://localhost:5000/api";
 
 const Transactions = () => {
   const { token } = useAuth();
@@ -20,17 +20,19 @@ const Transactions = () => {
   const [skills, setSkills] = useState([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [createError, setCreateError] = useState("");
-  const [actionLoading, setActionLoading] = useState({}); // { [txId]: true/false }
+  const [actionLoading, setActionLoading] = useState({});
 
   // Fetch all transactions
   const fetchTransactions = () => {
     setLoading(true);
     setError("");
     let url = `${API_BASE}/transactions`;
+    
     // Use filter endpoint if filtering
     if (statusFilter !== "all" || typeFilter !== "all") {
       url = `${API_BASE}/transactions/filter?${statusFilter !== "all" ? `status=${statusFilter}` : ""}${statusFilter !== "all" && typeFilter !== "all" ? "&" : ""}${typeFilter !== "all" ? `type=${typeFilter}` : ""}`;
     }
+    
     axios
       .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
@@ -55,7 +57,6 @@ const Transactions = () => {
     axios
       .get(`${API_BASE}/categories`)
       .then((res) => {
-        // Flatten all skills from all categories
         const catPromises = res.data.map((cat) =>
           axios.get(`${API_BASE}/categories/${cat._id}/skills`).then((r) =>
             r.data.map((skill) => ({
@@ -99,7 +100,7 @@ const Transactions = () => {
     }
   };
 
-  // Transaction actions (accept, complete, cancel)
+  // Transaction actions (accept, complete, cancel, swap actions)
   const handleAction = async (id, status) => {
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
@@ -109,8 +110,9 @@ const Transactions = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchTransactions();
-    } catch {
-      // Optionally show error
+    } catch (err) {
+      console.error("Action failed:", err);
+      // Optionally show error to user
     } finally {
       setActionLoading((prev) => ({ ...prev, [id]: false }));
     }
@@ -131,6 +133,15 @@ const Transactions = () => {
     }
   };
 
+  // Calculate stats including swap statuses
+  const pendingCount = transactions.filter(tx => tx.status === 'pending').length;
+  const acceptedCount = transactions.filter(tx => tx.status === 'accepted').length;
+  const completedCount = transactions.filter(tx => tx.status === 'completed').length;
+  const cancelledCount = transactions.filter(tx => tx.status === 'cancelled').length;
+  const proposedSwapCount = transactions.filter(tx => tx.status === 'proposed-swap').length;
+  const acceptedSwapCount = transactions.filter(tx => tx.status === 'accepted-swap').length;
+  const rejectedSwapCount = transactions.filter(tx => tx.status === 'rejected-swap').length;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
@@ -146,18 +157,22 @@ const Transactions = () => {
       {/* Notifications and Stats */}
       <div className="bg-white rounded-xl shadow p-6 mb-8">
         <h2 className="text-xl font-semibold text-primary mb-4">Notifications & Stats</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="bg-light rounded p-4 flex-1">
-            <span className="font-semibold text-secondary">Total Transactions:</span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-light rounded p-4">
+            <span className="font-semibold text-secondary">Total:</span>
             <span className="text-primary ml-2">{transactions.length}</span>
           </div>
-          <div className="bg-light rounded p-4 flex-1">
-            <span className="font-semibold text-secondary">Pending Transactions:</span>
-            <span className="text-primary ml-2">{transactions.filter(tx => tx.status === 'pending').length}</span>
+          <div className="bg-yellow-100 rounded p-4">
+            <span className="font-semibold text-secondary">Pending:</span>
+            <span className="text-primary ml-2">{pendingCount}</span>
           </div>
-          <div className="bg-light rounded p-4 flex-1">
-            <span className="font-semibold text-secondary">Completed Transactions:</span>
-            <span className="text-primary ml-2">{transactions.filter(tx => tx.status === 'completed').length}</span>
+          <div className="bg-purple-100 rounded p-4">
+            <span className="font-semibold text-secondary">Swap Proposed:</span>
+            <span className="text-primary ml-2">{proposedSwapCount}</span>
+          </div>
+          <div className="bg-green-100 rounded p-4">
+            <span className="font-semibold text-secondary">Completed:</span>
+            <span className="text-primary ml-2">{completedCount + acceptedSwapCount}</span>
           </div>
         </div>
       </div>
@@ -214,6 +229,9 @@ const Transactions = () => {
           <option value="accepted">Accepted</option>
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
+          <option value="proposed-swap">Proposed Swap</option>
+          <option value="accepted-swap">Accepted Swap</option>
+          <option value="rejected-swap">Rejected Swap</option>
         </select>
         <select
           className="border rounded px-3 py-2"
@@ -245,6 +263,7 @@ const Transactions = () => {
                 onComplete={(id) => handleAction(id, "completed")}
                 onCancel={(id) => handleAction(id, "cancelled")}
                 onDelete={handleDelete}
+                onAction={handleAction} // Add this prop for swap actions
               />
             ))}
           </ul>
