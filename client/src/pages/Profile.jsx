@@ -157,63 +157,63 @@ const Profile = () => {
   };
 
   const handleComplete = async (transactionId) => {
-    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
-    try {
-      await axios.put(
-        `${API_BASE}/transactions/${transactionId}/complete`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // Refresh transactions
-      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTransactions(res.data);
-    } catch (err) {
-      console.error("Failed to complete transaction:", err);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
-    }
-  };
+  setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+  try {
+    await axios.patch(
+      `${API_BASE}/transactions/${transactionId}`,  // Remove "/complete"
+      { status: "completed" },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    // Refresh transactions - also fix this endpoint
+    const res = await axios.get(`${API_BASE}/transactions?userId=${profile._id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setTransactions(res.data);
+  } catch (err) {
+    console.error("Failed to complete transaction:", err);
+  } finally {
+    setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+  }
+};
 
-  const handleCancel = async (transactionId) => {
-    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
-    try {
-      await axios.put(
-        `${API_BASE}/transactions/${transactionId}/cancel`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // Refresh transactions
-      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTransactions(res.data);
-    } catch (err) {
-      console.error("Failed to cancel transaction:", err);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
-    }
-  };
+const handleCancel = async (transactionId) => {
+  setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+  try {
+    await axios.patch(  // Change from PUT to PATCH
+      `${API_BASE}/transactions/${transactionId}`,  // Remove "/cancel"
+      { status: "cancelled" },  // Add status in request body
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    // Refresh transactions - fix the endpoint
+    const res = await axios.get(`${API_BASE}/transactions?userId=${profile._id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setTransactions(res.data);
+  } catch (err) {
+    console.error("Failed to cancel transaction:", err);
+  } finally {
+    setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+  }
+};
 
-  const handleDelete = async (transactionId) => {
-    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
-    try {
-      await axios.delete(
-        `${API_BASE}/transactions/${transactionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // Refresh transactions
-      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTransactions(res.data);
-    } catch (err) {
-      console.error("Failed to delete transaction:", err);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
-    }
-  };
+ const handleDelete = async (transactionId) => {
+  setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+  try {
+    await axios.delete(
+      `${API_BASE}/transactions/${transactionId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    // Refresh transactions - FIX THIS ENDPOINT
+    const res = await axios.get(`${API_BASE}/transactions?userId=${profile._id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setTransactions(res.data);
+  } catch (err) {
+    console.error("Failed to delete transaction:", err);
+  } finally {
+    setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+  }
+};
 
   const handleAction = async (transactionId, action) => {
     setActionLoading(prev => ({ ...prev, [transactionId]: true }));
