@@ -1,11 +1,11 @@
-// src/pages/Profile.jsx
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useParams } from "react-router-dom";
 import CategorySkillInput from "../components/CategorySkillInput";
 import { useSocket } from "../hooks/useSocket";
-import Reviews from "../components/Reviews"; // Import the Reviews component
+import Reviews from "../components/Reviews";
+import TransactionItem from "../components/TransactionItem";
 
 // Helper: Get initials from name/email
 const getInitials = (user) => {
@@ -34,8 +34,8 @@ const Profile = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState({
     bio: "",
-    skills: [], // Now an array of objects
-    learning: [], // Now an array of objects
+    skills: [],
+    learning: [],
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
@@ -52,6 +52,11 @@ const Profile = () => {
   const [messageError, setMessageError] = useState("");
   const [messageSuccess, setMessageSuccess] = useState("");
   const fileInputRef = useRef();
+
+  // Add state for transactions
+  const [transactions, setTransactions] = useState([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState({});
 
   // Get full avatar URL
   const getAvatarUrl = (avatarPath) => {
@@ -93,8 +98,8 @@ const Profile = () => {
         if (!userId || (authUser && res.data._id === authUser._id)) {
           setEditData({
             bio: res.data.bio || "",
-            skills: res.data.skills || [], // Keep full skill objects
-            learning: res.data.learning || [], // Keep full skill objects
+            skills: res.data.skills || [],
+            learning: res.data.learning || [],
           });
           setAvatarPreview(getAvatarUrl(res.data.avatar));
         }
@@ -106,6 +111,129 @@ const Profile = () => {
     };
     fetchProfile();
   }, [token, userId, authUser]);
+
+  // Fetch user transactions
+  useEffect(() => {
+    const fetchUserTransactions = async () => {
+      if (!profile?._id) return;
+      
+      setTransactionsLoading(true);
+      try {
+        const url = `${API_BASE}/transactions?userId=${profile._id}`;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get(url, { headers });
+        setTransactions(res.data);
+      } catch (err) {
+        console.error("Failed to fetch user transactions:", err);
+      } finally {
+        setTransactionsLoading(false);
+      }
+    };
+
+    if (profile) {
+      fetchUserTransactions();
+    }
+  }, [profile, token]);
+
+  // Transaction action handlers
+  const handleAccept = async (transactionId) => {
+    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+    try {
+       await axios.patch(
+      `${API_BASE}/transactions/${transactionId}`,
+      { status: "accepted" },  // Add status in request body
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+      // Refresh transactions
+      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to accept transaction:", err);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+    }
+  };
+
+  const handleComplete = async (transactionId) => {
+    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+    try {
+      await axios.put(
+        `${API_BASE}/transactions/${transactionId}/complete`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh transactions
+      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to complete transaction:", err);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+    }
+  };
+
+  const handleCancel = async (transactionId) => {
+    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+    try {
+      await axios.put(
+        `${API_BASE}/transactions/${transactionId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh transactions
+      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to cancel transaction:", err);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+    }
+  };
+
+  const handleDelete = async (transactionId) => {
+    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+    try {
+      await axios.delete(
+        `${API_BASE}/transactions/${transactionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh transactions
+      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+    }
+  };
+
+  const handleAction = async (transactionId, action) => {
+    setActionLoading(prev => ({ ...prev, [transactionId]: true }));
+    try {
+      await axios.put(
+        `${API_BASE}/transactions/${transactionId}/status`,
+        { status: action },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh transactions
+      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to update transaction status:", err);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [transactionId]: false }));
+    }
+  };
 
   // Handle avatar file selection
   const handleAvatarChange = (e) => {
@@ -138,10 +266,10 @@ const Profile = () => {
       });
 
       if (res.data.user) {
-        updateUser(res.data.user); // Immediate sync with Navbar
+        updateUser(res.data.user);
       }
 
-      return res.data.avatar; // Return the avatar path
+      return res.data.avatar;
     } catch (err) {
       setAvatarError(err.response?.data?.error || "Failed to upload avatar.");
       return null;
@@ -188,14 +316,14 @@ const Profile = () => {
       const uploadedAvatar = avatarFile ? await uploadAvatar() : null;
       if (avatarFile && !uploadedAvatar) return;
 
-      // Prepare data for API - ADD NULL FILTER
+      // Prepare data for API
       const updateData = {
         bio: editData.bio,
         skills: editData.skills
-          .filter((s) => s != null) // <-- ADD THIS to remove null values
+          .filter((s) => s != null)
           .filter((s) => s.name && s.category),
         learning: editData.learning
-          .filter((s) => s != null) // <-- ADD THIS to remove null values
+          .filter((s) => s != null)
           .filter((s) => s.name && s.category),
         ...(uploadedAvatar ? { avatar: uploadedAvatar } : {}),
       };
@@ -406,8 +534,40 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Reviews Section - ADDED HERE */}
+      {/* Reviews Section */}
       <Reviews profile={profile} />
+
+      {/* Transactions Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-primary mb-4">
+          {isOwnProfile ? "My Transactions" : `${profile.name}'s Transactions`}
+        </h2>
+        
+        {transactionsLoading ? (
+          <div className="text-center py-4">
+            <span className="text-accent animate-pulse">Loading transactions...</span>
+          </div>
+        ) : transactions.length > 0 ? (
+          <ul className="space-y-3">
+            {transactions.map((tx) => (
+              <TransactionItem
+                key={tx._id}
+                tx={tx}
+                actionLoading={actionLoading}
+                onAccept={handleAccept}
+                onComplete={handleComplete}
+                onCancel={handleCancel}
+                onDelete={handleDelete}
+                onAction={handleAction}
+              />
+            ))}
+          </ul>
+        ) : (
+          <div className="bg-light rounded p-4 text-center text-gray-500">
+            No transactions yet.
+          </div>
+        )}
+      </div>
 
       {/* Send Message Modal */}
       {messageModalOpen && (

@@ -30,11 +30,7 @@ const proposeSwap = async (req, res) => {
         .json({ error: "You cannot propose a swap on your own request." });
     }
 
-    // 4. Check if the current user actually owns the skill they are offering
-    // (This would likely involve a check against the User model's 'skills' array)
-    // const userHasSkill = req.user.skills.includes(offeredSkillId);
-    // For now, we'll assume the frontend only shows skills the user owns.
-    // A more robust check would be needed in a real application.
+
 
     // 5. Create a new 'offer' transaction from the current user
     const offerTransaction = new Transaction({

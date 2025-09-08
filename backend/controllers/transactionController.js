@@ -23,12 +23,28 @@ const createTransaction = async (req, res) => {
   }
 };
 
-// ✅ Get all transactions for the logged-in user
+// ✅ Get transactions for a user (can be own or other users)
+// ✅ Get transactions for a user (both owned and accepted)
 const getMyTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({ user: req.user.id })
-      .populate("skill")
-      .sort({ createdAt: -1 });
+    const { userId } = req.query;
+
+    // Use the provided userId or default to the authenticated user
+    const targetUserId = userId || req.user.id;
+
+    // Find transactions where user is either OWNER or ACCEPTOR
+    const transactions = await Transaction.find({
+      $or: [
+        { user: targetUserId },        // User owns the transaction
+        { acceptor: targetUserId }     // User accepted the transaction
+      ]
+    })
+    .populate("user", "name email avatar")
+    .populate("acceptor", "name email avatar")
+    .populate("skill", "name category")
+    // .populate("offeredSkill", "name category")
+    .populate("linkedTransaction")
+    .sort({ createdAt: -1 });
 
     res.json(transactions);
   } catch (err) {
@@ -57,7 +73,9 @@ const updateTransactionStatus = async (req, res) => {
 
   try {
     // Find the transaction. Populate is optional here, but useful for the ID.
-    const transaction = await Transaction.findById(id).populate("linkedTransaction");
+    const transaction = await Transaction.findById(id).populate(
+      "linkedTransaction"
+    );
 
     if (!transaction) {
       return res.status(404).json({ error: "Transaction not found" });
@@ -67,9 +85,11 @@ const updateTransactionStatus = async (req, res) => {
     if (status === "accepted-swap" && transaction.status === "proposed-swap") {
       // Ensure the user updating is the owner of the transaction
       if (transaction.user.toString() !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to accept this swap." });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to accept this swap." });
       }
-      
+
       // 1. Update the current transaction
       transaction.status = "accepted-swap";
       await transaction.save();
@@ -77,36 +97,45 @@ const updateTransactionStatus = async (req, res) => {
       // 2. Find and update the LINKED transaction
       if (transaction.linkedTransaction) {
         // Find the actual linked document by its ID
-        const linkedTxDoc = await Transaction.findById(transaction.linkedTransaction._id);
+        const linkedTxDoc = await Transaction.findById(
+          transaction.linkedTransaction._id
+        );
         if (linkedTxDoc) {
           linkedTxDoc.status = "accepted-swap";
           await linkedTxDoc.save(); // Now this will work
         }
       }
-
-    } else if (status === "rejected-swap" && transaction.status === "proposed-swap") {
+    } else if (
+      status === "rejected-swap" &&
+      transaction.status === "proposed-swap"
+    ) {
       if (transaction.user.toString() !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to reject this swap." });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to reject this swap." });
       }
-      
+
       transaction.status = "rejected-swap";
       await transaction.save();
 
       if (transaction.linkedTransaction) {
-        const linkedTxDoc = await Transaction.findById(transaction.linkedTransaction._id);
+        const linkedTxDoc = await Transaction.findById(
+          transaction.linkedTransaction._id
+        );
         if (linkedTxDoc) {
           linkedTxDoc.status = "rejected-swap";
           await linkedTxDoc.save();
         }
       }
-
     }
     // --- END NEW LOGIC ---
 
     // --- EXISTING LOGIC FOR NON-SWAP STATUSES ---
     else if (status === "accepted") {
       if (transaction.user.toString() === req.user.id) {
-        return res.status(400).json({ error: "You cannot accept your own transaction." });
+        return res
+          .status(400)
+          .json({ error: "You cannot accept your own transaction." });
       }
       transaction.status = "accepted";
       transaction.acceptor = req.user.id;
@@ -122,7 +151,6 @@ const updateTransactionStatus = async (req, res) => {
       .populate("skill")
       .populate("linkedTransaction");
     res.json(updated);
-
   } catch (err) {
     console.error("Error in updateTransactionStatus:", err);
     res.status(500).json({ error: "Failed to update transaction" });

@@ -15,12 +15,12 @@ const statusColors = {
 
 const TransactionItem = ({
   tx,
-  actionLoading,
-  onAccept,
-  onComplete,
-  onCancel,
-  onDelete,
-  onAction, // Make sure this prop is passed from parent component
+  actionLoading = {}, 
+  onAccept = () => {},
+  onComplete = () => {},
+  onCancel = () => {},
+  onDelete = () => {},
+  onAction = () => {}, 
 }) => {
   const { user } = useAuth();
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
@@ -53,7 +53,9 @@ const TransactionItem = ({
           </div>
           <div>
             <span
-              className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[tx.status]}`}
+              className={`px-2 py-1 rounded text-xs font-semibold ${
+                statusColors[tx.status]
+              }`}
             >
               {tx.status}
             </span>
@@ -65,14 +67,14 @@ const TransactionItem = ({
             <div className="text-xs text-secondary">
               Accepted by:{" "}
               <Link
-                to={`/profile/${tx.acceptor}`}
+                to={`/profile/${tx.acceptor._id}`}
                 className="text-accent hover:underline"
               >
-                {tx.acceptor}
+                {tx.acceptor.name}
               </Link>
             </div>
           )}
-          
+
           {/* Display swap information */}
           {tx.linkedTransaction && (
             <div className="text-xs text-purple-600">
@@ -82,7 +84,7 @@ const TransactionItem = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex gap-2 mt-2 md:mt-0">
           {/* Propose Swap Button */}
           {isAnotherUsersOpenRequest && (
@@ -124,15 +126,17 @@ const TransactionItem = ({
           {/* Original action buttons (conditionally hidden during swaps) */}
           {!isProposedSwap && !isAcceptedSwap && (
             <>
-              {tx.status === "pending" && tx.type === "request" && !tx.acceptor && (
-                <button
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs"
-                  onClick={() => onAccept(tx._id)}
-                  disabled={actionLoading[tx._id]}
-                >
-                  {actionLoading[tx._id] ? "Processing..." : "Accept"}
-                </button>
-              )}
+              {tx.status === "pending" &&
+                tx.type === "request" &&
+                !tx.acceptor && (
+                  <button
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs"
+                    onClick={() => onAccept(tx._id)}
+                    disabled={actionLoading[tx._id]}
+                  >
+                    {actionLoading[tx._id] ? "Processing..." : "Accept"}
+                  </button>
+                )}
               {tx.status === "accepted" && (
                 <button
                   className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-xs"
