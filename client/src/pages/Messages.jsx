@@ -1,4 +1,3 @@
-// src/pages/Messages.jsx
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
@@ -7,24 +6,28 @@ import { Link } from "react-router-dom";
 
 const API_BASE = "http://localhost:5000/api";
 
-// Helper: Get avatar URL
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (avatarPath.startsWith("http")) return avatarPath;
   return `http://localhost:5000${avatarPath}`;
 };
 
-// Helper: Get initials from name
 const getInitials = (user) => {
   if (!user) return "";
-  if (user.name) {
-    return user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  }
+  if (user.name) return user.name.split(" ").map((n) => n[0]).join("").toUpperCase();
   return "U";
+};
+
+const Avatar = ({ user, size = "md" }) => {
+  const sz = size === "sm" ? "w-7 h-7 text-xs" : size === "lg" ? "w-12 h-12 text-lg" : "w-10 h-10 text-sm";
+  return (
+    <div className={`${sz} rounded-xl bg-gradient-to-br from-primary to-accent text-white font-bold flex items-center justify-center overflow-hidden shrink-0`}>
+      {user?.avatar ? (
+        <img src={getAvatarUrl(user.avatar)} alt={user.name} className="w-full h-full object-cover"
+          onError={(e) => { e.target.style.display = "none"; }} />
+      ) : getInitials(user).slice(0, 2)}
+    </div>
+  );
 };
 
 const Messages = () => {
@@ -39,435 +42,249 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [errorThread, setErrorThread] = useState("");
-
   const threadEndRef = useRef(null);
 
-  // Helper: Get the ID from an object (handles both _id and id formats)
   const getId = (obj) => {
-    if (!obj) {
-      console.warn("getId called with null/undefined object");
-      return null;
-    }
-    const id = obj._id || obj.id;
-
-    return id;
+    if (!obj) return null;
+    return obj._id || obj.id;
   };
 
-  // Helper: Group messages by conversation partner
   const groupInbox = (messages) => {
     const map = {};
     messages.forEach((msg) => {
       const currentUserId = getId(user);
       const senderId = getId(msg.sender);
-
       const other = senderId === currentUserId ? msg.receiver : msg.sender;
       const otherId = getId(other);
-
-      if (
-        !map[otherId] ||
-        new Date(msg.timestamp) > new Date(map[otherId].lastMessage.timestamp)
-      ) {
-        map[otherId] = {
-          user: other,
-          lastMessage: msg,
-        };
+      if (!map[otherId] || new Date(msg.timestamp) > new Date(map[otherId].lastMessage.timestamp)) {
+        map[otherId] = { user: other, lastMessage: msg };
       }
     });
-    const result = Object.values(map).sort(
-      (a, b) =>
-        new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp)
-    );
-    return result;
+    return Object.values(map).sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp));
   };
 
-  // Scroll to bottom of thread
-  const scrollToBottom = () => {
-    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const scrollToBottom = () => threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-  // Fetch inbox on mount
   useEffect(() => {
-    if (!user || !user.id) {
-      console.warn("Cannot fetch inbox: user or user.id is missing");
-      return;
-    }
+    if (!user?.id) return;
     setLoadingInbox(true);
     setError("");
-    axios
-      .get(`${API_BASE}/messages/${user.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setInbox(groupInbox(res.data));
-        setLoadingInbox(false);
-      })
-      .catch((err) => {
-        console.error("Inbox fetch error:", err.response?.data || err.message);
-        setError("Failed to load inbox.");
-        setLoadingInbox(false);
-      });
-  }, [token, user.id]);
+    axios.get(`${API_BASE}/messages/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => { setInbox(groupInbox(res.data)); setLoadingInbox(false); })
+      .catch(() => { setError("Failed to load inbox."); setLoadingInbox(false); });
+  }, [token, user?.id]);
 
-  // Fetch thread when selectedUser changes
   useEffect(() => {
-    if (!selectedUser) {
-      return;
-    }
-    if (!selectedUser._id && !selectedUser.id) {
-      console.error("Selected user has no ID:", selectedUser);
-      return;
-    }
-
+    if (!selectedUser) return;
     const selectedUserId = selectedUser._id || selectedUser.id;
-
     setLoadingThread(true);
     setErrorThread("");
-    axios
-      .get(`${API_BASE}/messages/${user.id}/${selectedUserId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setThread(res.data);
-        setLoadingThread(false);
-        setTimeout(scrollToBottom, 100);
-      })
-      .catch((err) => {
-        console.error("Thread fetch error:", err.response?.data || err.message);
-        setErrorThread("Failed to load conversation.");
-        setLoadingThread(false);
-      });
-  }, [selectedUser, token, user.id]);
+    axios.get(`${API_BASE}/messages/${user.id}/${selectedUserId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => { setThread(res.data); setLoadingThread(false); setTimeout(scrollToBottom, 100); })
+      .catch(() => { setErrorThread("Failed to load conversation."); setLoadingThread(false); });
+  }, [selectedUser, token, user?.id]);
 
-  // Socket.IO Effects
   useEffect(() => {
     if (socket && user) {
-      // Join user's personal room for receiving messages
       joinUserRoom();
-
-      // Listen for incoming messages
       socket.on("new-message", (newMessage) => {
         const currentUserId = getId(user);
         const selectedUserId = getId(selectedUser);
         const newMessageSenderId = getId(newMessage.sender);
         const newMessageReceiverId = getId(newMessage.receiver);
-
-        // Check if this message belongs to the current thread
-        const isForCurrentThread =
-          selectedUser &&
-          (newMessageSenderId === selectedUserId ||
-            newMessageReceiverId === selectedUserId);
-
-        // Check if this message is from/to the current user
-        const isRelevant =
-          newMessageSenderId === currentUserId ||
-          newMessageReceiverId === currentUserId;
-
-        if (isForCurrentThread) {
-          // Add to current thread
-          setThread((prev) => [...prev, newMessage]);
-          setTimeout(scrollToBottom, 100);
-        }
-
+        const isForCurrentThread = selectedUser && (newMessageSenderId === selectedUserId || newMessageReceiverId === selectedUserId);
+        const isRelevant = newMessageSenderId === currentUserId || newMessageReceiverId === currentUserId;
+        if (isForCurrentThread) { setThread((prev) => [...prev, newMessage]); setTimeout(scrollToBottom, 100); }
         if (isRelevant) {
-          // Refresh inbox to update last message and ordering
-          axios
-            .get(`${API_BASE}/messages/${user.id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((res) => setInbox(groupInbox(res.data)))
-            .catch(console.error);
+          axios.get(`${API_BASE}/messages/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => setInbox(groupInbox(res.data))).catch(console.error);
         }
       });
-
-      // Cleanup on unmount
-      return () => {
-        socket.off("new-message");
-      };
+      return () => { socket.off("new-message"); };
     }
-  }, [socket, user, selectedUser, token, joinUserRoom]);
+  }, [socket, user?.id, selectedUser, token, joinUserRoom]);
 
-  // Send message
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!message.trim() || !selectedUser) {
-      return;
-    }
-
-    // Use _id since that's what the backend expects
+    if (!message.trim() || !selectedUser) return;
     const receiverId = selectedUser._id || selectedUser.id;
-
-    if (!receiverId) {
-      console.error("No receiver ID found!");
-      setErrorThread("Failed to send message: invalid recipient");
-      return;
-    }
-
+    if (!receiverId) { setErrorThread("Invalid recipient"); return; }
     setSending(true);
     try {
-      // 1. Send via HTTP API (this saves to database)
-      const response = await axios.post(
-        `${API_BASE}/messages`,
-        {
-          receiver: receiverId,
-          content: message,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      const response = await axios.post(`${API_BASE}/messages`, { receiver: receiverId, content: message }, { headers: { Authorization: `Bearer ${token}` } });
       const savedMessage = response.data.data;
-
-      // 2. Emit via Socket.IO for real-time delivery
-      if (socket && isConnected) {
-        socket.emit("send-message", savedMessage);
-      }
-
-      // 3. Optimistically update UI
+      if (socket && isConnected) socket.emit("send-message", savedMessage);
       setThread((prev) => [...prev, savedMessage]);
       setMessage("");
       setTimeout(scrollToBottom, 100);
-
-      // 4. Refresh inbox to update last message
-      axios
-        .get(`${API_BASE}/messages/${user.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => setInbox(groupInbox(res.data)))
-        .catch(console.error);
-    } catch (err) {
-      console.error("Send message error details:", err.response?.data);
-      console.error("Full error:", err);
+      axios.get(`${API_BASE}/messages/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => setInbox(groupInbox(res.data))).catch(console.error);
+    } catch {
       setErrorThread("Failed to send message.");
     } finally {
       setSending(false);
     }
   };
 
-  // Auto-scroll when thread updates
-  useEffect(() => {
-    scrollToBottom();
-  }, [thread]);
+  useEffect(() => { scrollToBottom(); }, [thread]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 flex flex-col md:flex-row gap-8 min-h-[60vh]">
-      {/* Connection Status Indicator */}
-      <div
-        className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold ${
-          isConnected
-            ? "bg-green-100 text-green-800"
-            : "bg-red-100 text-red-800"
-        }`}
-      >
-        {isConnected ? "🟢 Online" : "🔴 Offline"}
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/10">
+
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-secondary to-primary py-10 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: "radial-gradient(circle, #A5D7E8 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="relative z-10 max-w-6xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="text-light/60 text-sm font-medium uppercase tracking-widest mb-1">Inbox</p>
+            <h1 className="text-3xl font-extrabold text-white">Messages</h1>
+          </div>
+          {/* Connection Status */}
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${isConnected ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-red-500/20 text-red-300 border border-red-500/30"}`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+            {isConnected ? "Online" : "Offline"}
+          </div>
+        </div>
       </div>
 
-      {/* Inbox/Threads List */}
-      <aside className="w-full md:w-1/3">
-        <h2 className="text-xl font-semibold text-primary mb-4">Inbox</h2>
-        {loadingInbox ? (
-          <div className="text-accent animate-pulse">Loading inbox...</div>
-        ) : error ? (
-          <div className="text-red-600">{error}</div>
-        ) : inbox.length === 0 ? (
-          <div className="text-gray-400">No conversations yet.</div>
-        ) : (
-          <ul className="space-y-2">
-            {inbox.map((conv) => (
-              <li
-                key={getId(conv.user)}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition ${
-                  selectedUser && getId(selectedUser) === getId(conv.user)
-                    ? "bg-light border-l-4 border-accent"
-                    : "hover:bg-light"
-                }`}
-                onClick={() => {
-                  setSelectedUser(conv.user);
-                }}
-              >
-                {/* Avatar with fallback to initials */}
-                <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold overflow-hidden">
-                  {conv.user.avatar ? (
-                    <img
-                      src={getAvatarUrl(conv.user.avatar)}
-                      alt={conv.user.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  ) : null}
-                  {!conv.user.avatar && (
-                    <span>{getInitials(conv.user).slice(0, 2)}</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-primary capitalize">
-                    {conv.user.name}
-                  </div>
-                  <div className="text-xs text-gray-500 truncate max-w-[160px]">
-                    {conv.lastMessage.content}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-400">
-                  {new Date(conv.lastMessage.timestamp).toLocaleDateString()}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </aside>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex gap-6 h-[calc(100vh-280px)] min-h-[500px]">
 
-      {/* Thread View */}
-      <main className="flex-1 bg-white rounded-xl shadow p-6 flex flex-col">
-        {!selectedUser ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
-            Select a conversation to view messages.
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 mb-4 border-b pb-2">
-              {/* Avatar in conversation header */}
-              <div className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold overflow-hidden">
-                {selectedUser.avatar ? (
-                  <img
-                    src={getAvatarUrl(selectedUser.avatar)}
-                    alt={selectedUser.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = "none";
-                    }}
-                  />
-                ) : null}
-                {!selectedUser.avatar && (
-                  <span>{getInitials(selectedUser).slice(0, 2)}</span>
-                )}
-              </div>
-              <div className="font-semibold text-primary capitalize">
-                {selectedUser.name}
-              </div>
-              <Link
-                to={`/profile/${selectedUser._id || selectedUser.id}`}
-                className="ml-auto text-accent hover:underline text-xs"
-              >
-                View Profile
-              </Link>
+          {/* Inbox Sidebar */}
+          <aside className="w-full md:w-80 shrink-0 bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-primary">Conversations</h2>
+              <p className="text-secondary/40 text-xs">{inbox.length} thread{inbox.length !== 1 ? "s" : ""}</p>
             </div>
-            <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
-              {loadingThread ? (
-                <div className="text-accent animate-pulse">
-                  Loading conversation...
+            <div className="overflow-y-auto flex-1">
+              {loadingInbox ? (
+                <div className="p-5 text-accent text-sm animate-pulse">Loading inbox…</div>
+              ) : error ? (
+                <div className="p-5 text-red-500 text-sm">{error}</div>
+              ) : inbox.length === 0 ? (
+                <div className="p-5 text-center">
+                  <div className="text-4xl mb-2">💬</div>
+                  <p className="text-secondary/40 text-sm">No conversations yet.</p>
                 </div>
-              ) : errorThread ? (
-                <div className="text-red-600">{errorThread}</div>
-              ) : thread.length === 0 ? (
-                <div className="text-gray-400">No messages yet. Say hello!</div>
               ) : (
-                <ul className="space-y-3">
-                  {thread.map((msg) => {
-                    const senderId = getId(msg.sender);
-                    const currentUserId = getId(user);
-                    const isOwnMessage = senderId === currentUserId;
-
-                    return (
-                      <li
-                        key={msg._id}
-                        className={`flex items-end gap-2 ${
-                          isOwnMessage ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        {/* Show avatar for received messages */}
-                        {!isOwnMessage && (
-                          <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
-                            {msg.sender.avatar ? (
-                              <img
-                                src={getAvatarUrl(msg.sender.avatar)}
-                                alt={msg.sender.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.style.display = "none";
-                                }}
-                              />
-                            ) : null}
-                            {!msg.sender.avatar && (
-                              <span>{getInitials(msg.sender).slice(0, 1)}</span>
-                            )}
-                          </div>
-                        )}
-                        
-                        <div
-                          className={`px-4 py-2 rounded-lg max-w-xs ${
-                            isOwnMessage
-                              ? "bg-accent text-white"
-                              : "bg-light text-primary"
-                          }`}
-                        >
-                          <div className="text-sm">{msg.content}</div>
-                          <div className="text-xs text-gray-300 mt-1 text-right">
-                            {new Date(msg.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Show avatar for sent messages */}
-                        {isOwnMessage && (
-                          <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
-                            {user.avatar ? (
-                              <img
-                                src={getAvatarUrl(user.avatar)}
-                                alt={user.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.style.display = "none";
-                                }}
-                              />
-                            ) : null}
-                            {!user.avatar && (
-                              <span>{getInitials(user).slice(0, 1)}</span>
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                  <div ref={threadEndRef} />
+                <ul>
+                  {inbox.map((conv) => (
+                    <li
+                      key={getId(conv.user)}
+                      onClick={() => setSelectedUser(conv.user)}
+                      className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-all border-b border-gray-50 ${
+                        selectedUser && getId(selectedUser) === getId(conv.user)
+                          ? "bg-accent/10 border-l-4 border-l-accent"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <Avatar user={conv.user} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-primary text-sm capitalize truncate">{conv.user?.name}</div>
+                        <div className="text-xs text-gray-400 truncate mt-0.5">{conv.lastMessage.content}</div>
+                      </div>
+                      <div className="text-xs text-gray-300 shrink-0">{new Date(conv.lastMessage.timestamp).toLocaleDateString()}</div>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
-            {/* Send Message Form */}
-            <form
-              onSubmit={handleSend}
-              className="flex items-center gap-2 border-t pt-3"
-            >
-              <input
-                type="text"
-                className="flex-1 border rounded-lg px-3 py-2 focus:outline-none"
-                placeholder="Type your message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                disabled={sending || !isConnected}
-                required
-              />
-              <button
-                type="submit"
-                className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition disabled:opacity-50"
-                disabled={sending || !message.trim() || !isConnected}
-              >
-                {sending ? "Sending..." : "Send"}
-              </button>
-            </form>
-            {!isConnected && (
-              <div className="text-red-500 text-xs mt-2">
-                Connection lost. Reconnecting...
+          </aside>
+
+          {/* Thread View */}
+          <main className="flex-1 bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col overflow-hidden">
+            {!selectedUser ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-4xl mb-4">💬</div>
+                <h3 className="text-lg font-bold text-primary mb-2">Select a conversation</h3>
+                <p className="text-secondary/50 text-sm">Choose a conversation from the left to start messaging.</p>
               </div>
+            ) : (
+              <>
+                {/* Thread Header */}
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
+                  <Avatar user={selectedUser} size="lg" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-primary capitalize">{selectedUser.name}</div>
+                    <div className="text-xs text-secondary/40">Active conversation</div>
+                  </div>
+                  <Link
+                    to={`/profile/${selectedUser._id || selectedUser.id}`}
+                    className="text-xs font-semibold text-accent hover:text-secondary transition-colors border border-accent/30 px-3 py-1.5 rounded-lg hover:bg-accent/5"
+                  >
+                    View Profile
+                  </Link>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                  {loadingThread ? (
+                    <div className="text-accent animate-pulse text-sm">Loading conversation…</div>
+                  ) : errorThread ? (
+                    <div className="text-red-500 text-sm">{errorThread}</div>
+                  ) : thread.length === 0 ? (
+                    <div className="text-center text-secondary/40 text-sm py-8">No messages yet. Say hello! 👋</div>
+                  ) : (
+                    thread.map((msg) => {
+                      const isOwn = getId(msg.sender) === getId(user);
+                      return (
+                        <div key={msg._id} className={`flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}>
+                          {!isOwn && <Avatar user={msg.sender} size="sm" />}
+                          <div className={`max-w-xs lg:max-w-sm px-4 py-2.5 rounded-2xl shadow-sm ${isOwn ? "bg-gradient-to-r from-primary to-accent text-white rounded-br-sm" : "bg-gray-100 text-primary rounded-bl-sm"}`}>
+                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                            <p className={`text-xs mt-1 text-right ${isOwn ? "text-white/60" : "text-gray-400"}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                          {isOwn && <Avatar user={user} size="sm" />}
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={threadEndRef} />
+                </div>
+
+                {/* Send Form */}
+                <div className="px-4 py-4 border-t border-gray-100 bg-gray-50/50">
+                  {!isConnected && (
+                    <p className="text-red-400 text-xs mb-2 text-center">Reconnecting…</p>
+                  )}
+                  <form onSubmit={handleSend} className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+                      placeholder="Type your message…"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      disabled={sending || !isConnected}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={sending || !message.trim() || !isConnected}
+                      className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:translate-y-0 shrink-0"
+                    >
+                      {sending ? (
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                        </svg>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </>
             )}
-          </>
-        )}
-      </main>
+          </main>
+
+        </div>
+      </div>
     </div>
   );
 };

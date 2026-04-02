@@ -1,6 +1,8 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
@@ -15,18 +17,19 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 
 // Initialize the app
-dotenv.config();
 const app = express();
 
 // --- Socket.IO Setup ---
 // 2. Create HTTP server for Socket.io
 const server = http.createServer(app);
 
+const ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:5174"];
+
 // 3. Initialize Socket.io with CORS config
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ← Add PATCH and OPTIONS
+    origin: ALLOWED_ORIGINS,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   },
@@ -58,6 +61,18 @@ io.on("connection", (socket) => {
 app.set("io", io);
 
 // --- Your Existing Code Below ---
+
+// Middleware
+app.use(express.json());
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -70,18 +85,7 @@ app.use(
       res.set("Access-Control-Allow-Origin", "*");
       res.set("Cross-Origin-Resource-Policy", "cross-origin");
     },
-  })
-);
-
-// Middleware
-app.use(express.json());
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE","PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // Routes

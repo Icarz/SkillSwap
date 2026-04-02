@@ -1,4 +1,3 @@
-// src/pages/ExploreUsers.jsx
 import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,7 +5,7 @@ import UserCard from "../components/UserCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 
-const API_BASE = "http://localhost:5000/api"; // Adjust if needed
+const API_BASE = "http://localhost:5000/api";
 
 const ExploreUsers = () => {
   const { token } = useAuth();
@@ -22,67 +21,95 @@ const ExploreUsers = () => {
     setError("");
     setUsers([]);
     setSearched(true);
-
     try {
       const res = await axios.get(
         `${API_BASE}/users/search?skills=${encodeURIComponent(query)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setUsers(res.data);
     } catch (err) {
-      setError(
-        err.response?.data?.error || "Failed to search users. Please try again."
-      );
+      setError(err.response?.data?.error || "Failed to search users. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-6 text-center">
-        Find Users by Skill
-      </h1>
-      {/* Search Bar */}
-      <form
-        onSubmit={handleSearch}
-        className="flex flex-col sm:flex-row gap-3 items-center justify-center mb-8"
-      >
-        <input
-          type="text"
-          placeholder="Enter skill(s), e.g. react,node"
-          className="w-full sm:w-80 px-4 py-2 rounded-lg border border-accent focus:outline-none focus:ring-2 focus:ring-accent"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          required
-        />
-        <button
-          type="submit"
-          className="bg-accent text-white px-6 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-          disabled={loading}
-        >
-          {loading ? "Searching..." : "Search"}
-        </button>
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/10">
+
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-secondary to-accent py-16 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: "radial-gradient(circle, #A5D7E8 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-light text-sm font-medium mb-4">
+            🔍 Search by skill
+          </span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3 tracking-tight">
+            Find Skill Partners
+          </h1>
+          <p className="text-light/70 text-lg mb-8">
+            Search for users who have the skill you want to learn.
+          </p>
+
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
+            <div className="relative flex-1">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder="e.g. react, guitar, spanish…"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-7 py-3.5 bg-light text-primary font-bold rounded-xl hover:shadow-light-glow hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 whitespace-nowrap"
+            >
+              {loading ? "Searching…" : "Search"}
+            </button>
+          </form>
+        </div>
+      </div>
 
       {/* Results */}
-      {loading ? (
-        <LoadingSpinner text="Searching users..." />
-      ) : error ? (
-        <ErrorBanner error={error} />
-      ) : searched && users.length === 0 ? (
-        <div className="text-gray-500 text-center">
-          No users found for these skills.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {users.map((user) => (
-            <UserCard key={user._id} user={user} />
-          ))}
-        </div>
-      )}
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        {loading ? (
+          <LoadingSpinner text="Searching users..." />
+        ) : error ? (
+          <ErrorBanner error={error} />
+        ) : searched && users.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-bold text-primary mb-2">No users found</h3>
+            <p className="text-secondary/60">Try a different skill name or check your spelling.</p>
+          </div>
+        ) : users.length > 0 ? (
+          <>
+            <p className="text-secondary/60 text-sm font-medium mb-6">
+              {users.length} user{users.length !== 1 ? "s" : ""} found for &ldquo;{query}&rdquo;
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {users.map((user) => (
+                <UserCard key={user._id} user={user} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-16 text-secondary/40">
+            <div className="text-6xl mb-4">👥</div>
+            <p className="text-lg">Search for a skill to find people who can teach you.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

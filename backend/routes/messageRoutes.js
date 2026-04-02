@@ -4,6 +4,7 @@ const messageController = require("../controllers/messageController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.post("/messages", authMiddleware, messageController.sendMessage);
+router.get("/messages/unread/count", authMiddleware, messageController.getUnreadMessageCount);
 router.get(
   "/messages/:userId",
   authMiddleware,

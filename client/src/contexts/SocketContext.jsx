@@ -1,5 +1,5 @@
 // src/contexts/SocketContext.jsx
-import { createContext,  useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { io } from "socket.io-client";
 
@@ -47,11 +47,11 @@ export const SocketProvider = ({ children }) => {
   }, [user, token]); // Reconnect if user or token changes
 
   // Function to join user's personal room
-  const joinUserRoom = () => {
+  const joinUserRoom = useCallback(() => {
     if (socket && user) {
       socket.emit("join-user-room", user.id);
     }
-  };
+  }, [socket, user]);
 
   const value = {
     socket,

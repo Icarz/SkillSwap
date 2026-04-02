@@ -15,12 +15,13 @@ const statusColors = {
 
 const TransactionItem = ({
   tx,
-  actionLoading = {}, 
+  actionLoading = {},
   onAccept = () => {},
   onComplete = () => {},
   onCancel = () => {},
   onDelete = () => {},
-  onAction = () => {}, 
+  onAction = () => {},
+  onRefresh = () => {},
 }) => {
   const { user } = useAuth();
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
@@ -36,7 +37,8 @@ const TransactionItem = ({
   const isAcceptedSwap = tx.status === "accepted-swap";
 
   const handleSwapSuccess = () => {
-    window.location.reload();
+    setIsSwapModalOpen(false);
+    onRefresh();
   };
 
   return (

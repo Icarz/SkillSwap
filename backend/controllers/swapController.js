@@ -1,4 +1,5 @@
 const Transaction = require("../models/Transaction");
+const User = require("../models/User");
 const { emitNotification } = require("../config/socket");
 
 // ✅ Propose a skill swap
@@ -46,16 +47,22 @@ const proposeSwap = async (req, res) => {
     targetTransaction.linkedTransaction = offerTransaction._id;
     targetTransaction.status = "proposed-swap"; // Update target status
 
-    // 7. Save both transactions
+    // 7. Save both transactions — revert the first if the second fails
     await offerTransaction.save();
-    await targetTransaction.save();
+    try {
+      await targetTransaction.save();
+    } catch (saveErr) {
+      await offerTransaction.deleteOne();
+      throw saveErr;
+    }
 
     // 8. Populate the data for the response and notification
     await offerTransaction.populate("skill", "name");
     await targetTransaction.populate("skill", "name");
 
     // 9. Send a real-time notification to the owner of the target request
-    const notificationMessage = `${req.user.name} has proposed a swap: their ${offerTransaction.skill.name} for your ${targetTransaction.skill.name}.`;
+    const proposer = await User.findById(req.user.id).select("name");
+    const notificationMessage = `${proposer.name} has proposed a swap: their ${offerTransaction.skill.name} for your ${targetTransaction.skill.name}.`;
 
     // Call the function with the request object and the data
     emitNotification(req, {

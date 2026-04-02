@@ -161,7 +161,7 @@ const updateTransactionStatus = async (req, res) => {
 const filterMyTransactions = async (req, res) => {
   const { status, type } = req.query;
 
-  const allowedStatuses = ["pending", "accepted", "completed", "cancelled"];
+  const allowedStatuses = ["pending", "accepted", "completed", "cancelled", "proposed-swap", "accepted-swap", "rejected-swap"];
   const allowedTypes = ["offer", "request"];
 
   const filters = { user: req.user.id };

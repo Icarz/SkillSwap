@@ -1,4 +1,3 @@
-// src/pages/Transactions.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,6 +5,9 @@ import { Link } from "react-router-dom";
 import TransactionItem from "../components/TransactionItem";
 
 const API_BASE = "http://localhost:5000/api";
+
+const statusFilters = ["all", "pending", "accepted", "completed", "cancelled", "proposed-swap", "accepted-swap", "rejected-swap"];
+const typeFilters   = ["all", "offer", "request"];
 
 const Transactions = () => {
   const { token } = useAuth();
@@ -22,27 +24,19 @@ const Transactions = () => {
   const [createError, setCreateError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
 
-  // Fetch all transactions
   const fetchTransactions = () => {
     setLoading(true);
     setError("");
     let url = `${API_BASE}/transactions`;
-    
-    // Use filter endpoint if filtering
     if (statusFilter !== "all" || typeFilter !== "all") {
-      url = `${API_BASE}/transactions/filter?${statusFilter !== "all" ? `status=${statusFilter}` : ""}${statusFilter !== "all" && typeFilter !== "all" ? "&" : ""}${typeFilter !== "all" ? `type=${typeFilter}` : ""}`;
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (typeFilter !== "all") params.append("type", typeFilter);
+      url = `${API_BASE}/transactions/filter?${params.toString()}`;
     }
-    
-    axios
-      .get(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        setTransactions(res.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load transactions.");
-        setLoading(false);
-      });
+    axios.get(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => { setTransactions(res.data); setLoading(false); })
+      .catch(() => { setError("Failed to load transactions."); setLoading(false); });
   };
 
   useEffect(() => {
@@ -50,246 +44,241 @@ const Transactions = () => {
     // eslint-disable-next-line
   }, [token, statusFilter, typeFilter]);
 
-  // Fetch all skills for new transaction form
   useEffect(() => {
     if (!creating) return;
     setLoadingSkills(true);
-    axios
-      .get(`${API_BASE}/categories`)
+    axios.get(`${API_BASE}/categories`)
       .then((res) => {
         const catPromises = res.data.map((cat) =>
           axios.get(`${API_BASE}/categories/${cat._id}/skills`).then((r) =>
-            r.data.map((skill) => ({
-              ...skill,
-              category: cat,
-            }))
+            r.data.map((skill) => ({ ...skill, category: cat }))
           )
         );
-        Promise.all(catPromises).then((all) => {
-          setSkills(all.flat());
-          setLoadingSkills(false);
-        });
+        Promise.all(catPromises).then((all) => { setSkills(all.flat()); setLoadingSkills(false); });
       })
       .catch(() => setLoadingSkills(false));
   }, [creating]);
 
-  // Create new transaction
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreateError("");
-    if (!newSkill) {
-      setCreateError("Please select a skill.");
-      return;
-    }
+    if (!newSkill) { setCreateError("Please select a skill."); return; }
     setCreating("submitting");
     try {
-      await axios.post(
-        `${API_BASE}/transactions`,
-        { skill: newSkill, type: newType },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`${API_BASE}/transactions`, { skill: newSkill, type: newType }, { headers: { Authorization: `Bearer ${token}` } });
       setCreating(false);
       setNewSkill("");
       setNewType("offer");
       fetchTransactions();
     } catch (err) {
-      setCreateError(
-        err.response?.data?.error || "Failed to create transaction."
-      );
+      setCreateError(err.response?.data?.error || "Failed to create transaction.");
       setCreating(false);
     }
   };
 
-  // Transaction actions (accept, complete, cancel, swap actions)
   const handleAction = async (id, status) => {
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      await axios.patch(
-        `${API_BASE}/transactions/${id}`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.patch(`${API_BASE}/transactions/${id}`, { status }, { headers: { Authorization: `Bearer ${token}` } });
       fetchTransactions();
     } catch (err) {
       console.error("Action failed:", err);
-      // Optionally show error to user
     } finally {
       setActionLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  // Delete transaction
   const handleDelete = async (id) => {
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      await axios.delete(`${API_BASE}/transactions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(`${API_BASE}/transactions/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       fetchTransactions();
-    } catch {
-      // Optionally show error
-    } finally {
+    } catch { /* silent */ } finally {
       setActionLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  // Calculate stats including swap statuses
-  const pendingCount = transactions.filter(tx => tx.status === 'pending').length;
-  const acceptedCount = transactions.filter(tx => tx.status === 'accepted').length;
-  const completedCount = transactions.filter(tx => tx.status === 'completed').length;
-  const cancelledCount = transactions.filter(tx => tx.status === 'cancelled').length;
-  const proposedSwapCount = transactions.filter(tx => tx.status === 'proposed-swap').length;
-  const acceptedSwapCount = transactions.filter(tx => tx.status === 'accepted-swap').length;
-  const rejectedSwapCount = transactions.filter(tx => tx.status === 'rejected-swap').length;
+  const pendingCount       = transactions.filter((tx) => tx.status === "pending").length;
+  const completedCount     = transactions.filter((tx) => tx.status === "completed").length;
+  const proposedSwapCount  = transactions.filter((tx) => tx.status === "proposed-swap").length;
+  const acceptedSwapCount  = transactions.filter((tx) => tx.status === "accepted-swap").length;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-primary">My Transactions</h1>
-        <button
-          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-          onClick={() => setCreating((c) => !c)}
-        >
-          {creating === true ? "Cancel" : "New Transaction"}
-        </button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/10">
 
-      {/* Notifications and Stats */}
-      <div className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold text-primary mb-4">Notifications & Stats</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-light rounded p-4">
-            <span className="font-semibold text-secondary">Total:</span>
-            <span className="text-primary ml-2">{transactions.length}</span>
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary to-accent py-12 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: "radial-gradient(circle, #A5D7E8 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="relative z-10 max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-light/60 text-sm font-medium uppercase tracking-widest mb-1">My Activity</p>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">Transactions</h1>
           </div>
-          <div className="bg-yellow-100 rounded p-4">
-            <span className="font-semibold text-secondary">Pending:</span>
-            <span className="text-primary ml-2">{pendingCount}</span>
-          </div>
-          <div className="bg-purple-100 rounded p-4">
-            <span className="font-semibold text-secondary">Swap Proposed:</span>
-            <span className="text-primary ml-2">{proposedSwapCount}</span>
-          </div>
-          <div className="bg-green-100 rounded p-4">
-            <span className="font-semibold text-secondary">Completed:</span>
-            <span className="text-primary ml-2">{completedCount + acceptedSwapCount}</span>
-          </div>
+          <button
+            className="inline-flex items-center gap-2 bg-light text-primary px-6 py-3 rounded-xl font-bold hover:shadow-light-glow hover:-translate-y-0.5 transition-all duration-200"
+            onClick={() => setCreating((c) => !c)}
+          >
+            {creating === true ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Cancel
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                New Transaction
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* New Transaction Form */}
-      {creating && creating !== "submitting" && (
-        <form
-          onSubmit={handleCreate}
-          className="bg-white rounded-xl shadow p-6 mb-8 flex flex-col sm:flex-row gap-4 items-center"
-        >
-          <select
-            className="border rounded px-3 py-2 flex-1"
-            value={newType}
-            onChange={(e) => setNewType(e.target.value)}
-          >
-            <option value="offer">Offer</option>
-            <option value="request">Request</option>
-          </select>
-          <select
-            className="border rounded px-3 py-2 flex-1"
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            disabled={loadingSkills}
-          >
-            <option value="">Select Skill</option>
-            {skills.map((skill) => (
-              <option key={skill._id} value={skill._id}>
-                {skill.category.icon} {skill.name.replace(/-/g, " ")} ({skill.category.name.replace(/-/g, " ")})
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-            disabled={creating === "submitting"}
-          >
-            {creating === "submitting" ? "Creating..." : "Create"}
-          </button>
-          {createError && (
-            <div className="text-red-600 text-sm mt-2">{createError}</div>
-          )}
-        </form>
-      )}
+      <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <select
-          className="border rounded px-3 py-2"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="proposed-swap">Proposed Swap</option>
-          <option value="accepted-swap">Accepted Swap</option>
-          <option value="rejected-swap">Rejected Swap</option>
-        </select>
-        <select
-          className="border rounded px-3 py-2"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-        >
-          <option value="all">All Types</option>
-          <option value="offer">Offer</option>
-          <option value="request">Request</option>
-        </select>
-      </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Total",         value: transactions.length, gradient: "from-primary to-secondary",  icon: "🔄" },
+            { label: "Pending",       value: pendingCount,        gradient: "from-yellow-400 to-yellow-500", icon: "⏳" },
+            { label: "Swap Proposed", value: proposedSwapCount,   gradient: "from-purple-500 to-purple-600", icon: "🤝" },
+            { label: "Completed",     value: completedCount + acceptedSwapCount, gradient: "from-green-500 to-green-600", icon: "✅" },
+          ].map((s) => (
+            <div key={s.label} className={`bg-gradient-to-br ${s.gradient} rounded-2xl p-5 text-white shadow-md`}>
+              <div className="text-2xl mb-2">{s.icon}</div>
+              <div className="text-3xl font-extrabold">{s.value}</div>
+              <div className="text-white/70 text-sm mt-1">{s.label}</div>
+            </div>
+          ))}
+        </div>
 
-      {/* Transactions List */}
-      <div className="bg-white rounded-xl shadow p-6">
-        {loading ? (
-          <div className="text-accent animate-pulse">Loading transactions...</div>
-        ) : error ? (
-          <div className="text-red-600">{error}</div>
-        ) : transactions.length === 0 ? (
-          <div className="text-gray-400">No transactions found.</div>
-        ) : (
-          <ul className="space-y-4">
-            {transactions.map((tx) => (
-              <TransactionItem
-                key={tx._id}
-                tx={tx}
-                actionLoading={actionLoading}
-                onAccept={(id) => handleAction(id, "accepted")}
-                onComplete={(id) => handleAction(id, "completed")}
-                onCancel={(id) => handleAction(id, "cancelled")}
-                onDelete={handleDelete}
-                onAction={handleAction} // Add this prop for swap actions
-              />
-            ))}
-          </ul>
+        {/* New Transaction Form */}
+        {creating && creating !== "submitting" && (
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 animate-fade-in">
+            <h2 className="text-lg font-bold text-primary mb-4">Create New Transaction</h2>
+            <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-2">Type</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-secondary bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value)}
+                >
+                  <option value="offer">Offer</option>
+                  <option value="request">Request</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-2">Skill</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-secondary bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  disabled={loadingSkills}
+                >
+                  <option value="">{loadingSkills ? "Loading skills…" : "Select a skill"}</option>
+                  {skills.map((skill) => (
+                    <option key={skill._id} value={skill._id}>
+                      {skill.category.icon} {skill.name.replace(/-/g, " ")} ({skill.category.name.replace(/-/g, " ")})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={creating === "submitting"}
+                className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 whitespace-nowrap"
+              >
+                {creating === "submitting" ? "Creating…" : "Create"}
+              </button>
+            </form>
+            {createError && (
+              <p className="text-red-500 text-sm mt-3">{createError}</p>
+            )}
+          </div>
         )}
-      </div>
 
-      {/* Quick Links */}
-      <div className="flex flex-wrap gap-4 mt-8">
-        <Link
-          to="/dashboard"
-          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-        >
-          Back to Dashboard
-        </Link>
-        <Link
-          to="/explore-skills"
-          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-        >
-          Explore Skills
-        </Link>
-        <Link
-          to="/explore-users"
-          className="bg-accent text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition"
-        >
-          Explore Users
-        </Link>
+        {/* Filters */}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+          <p className="text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-3">Filter</p>
+          <div className="flex flex-wrap gap-3">
+            <div>
+              <label className="block text-xs text-secondary/40 mb-1">Status</label>
+              <select
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-secondary bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                {statusFilters.map((s) => (
+                  <option key={s} value={s}>{s === "all" ? "All Statuses" : s.replace(/-/g, " ")}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-secondary/40 mb-1">Type</label>
+              <select
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-secondary bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent/40"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                {typeFilters.map((t) => (
+                  <option key={t} value={t}>{t === "all" ? "All Types" : t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+          <h2 className="text-lg font-bold text-primary mb-5">
+            {statusFilter !== "all" || typeFilter !== "all" ? "Filtered Results" : "All Transactions"}
+          </h2>
+          {loading ? (
+            <div className="text-accent animate-pulse text-sm">Loading transactions…</div>
+          ) : error ? (
+            <div className="text-red-500 text-sm">{error}</div>
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="text-5xl mb-3">📭</div>
+              <p className="text-secondary/50">No transactions found.</p>
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {transactions.map((tx) => (
+                <TransactionItem
+                  key={tx._id}
+                  tx={tx}
+                  actionLoading={actionLoading}
+                  onAccept={(id) => handleAction(id, "accepted")}
+                  onComplete={(id) => handleAction(id, "completed")}
+                  onCancel={(id) => handleAction(id, "cancelled")}
+                  onDelete={handleDelete}
+                  onAction={handleAction}
+                  onRefresh={fetchTransactions}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Quick Links */}
+        <div className="flex flex-wrap gap-3">
+          <Link to="/dashboard" className="px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold rounded-xl hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200">
+            ← Dashboard
+          </Link>
+          <Link to="/explore-skills" className="px-5 py-2.5 bg-white border border-gray-200 text-secondary text-sm font-bold rounded-xl hover:border-accent/40 hover:bg-accent/5 transition-all duration-200">
+            Explore Skills
+          </Link>
+          <Link to="/explore-users" className="px-5 py-2.5 bg-white border border-gray-200 text-secondary text-sm font-bold rounded-xl hover:border-accent/40 hover:bg-accent/5 transition-all duration-200">
+            Find Users
+          </Link>
+        </div>
+
       </div>
     </div>
   );

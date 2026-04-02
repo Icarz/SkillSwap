@@ -113,26 +113,26 @@ const Profile = () => {
   }, [token, userId, authUser]);
 
   // Fetch user transactions
-  useEffect(() => {
-    const fetchUserTransactions = async () => {
-      if (!profile?._id) return;
-      
-      setTransactionsLoading(true);
-      try {
-        const url = `${API_BASE}/transactions?userId=${profile._id}`;
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get(url, { headers });
-        setTransactions(res.data);
-      } catch (err) {
-        console.error("Failed to fetch user transactions:", err);
-      } finally {
-        setTransactionsLoading(false);
-      }
-    };
+  const fetchUserTransactions = async () => {
+    if (!profile?._id) return;
+    setTransactionsLoading(true);
+    try {
+      const url = `${API_BASE}/transactions?userId=${profile._id}`;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(url, { headers });
+      setTransactions(res.data);
+    } catch (err) {
+      console.error("Failed to fetch user transactions:", err);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (profile) {
       fetchUserTransactions();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, token]);
 
   // Transaction action handlers
@@ -145,7 +145,7 @@ const Profile = () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
       // Refresh transactions
-      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+      const res = await axios.get(`${API_BASE}/transactions?userId=${profile._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransactions(res.data);
@@ -218,13 +218,13 @@ const handleCancel = async (transactionId) => {
   const handleAction = async (transactionId, action) => {
     setActionLoading(prev => ({ ...prev, [transactionId]: true }));
     try {
-      await axios.put(
-        `${API_BASE}/transactions/${transactionId}/status`,
+      await axios.patch(
+        `${API_BASE}/transactions/${transactionId}`,
         { status: action },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // Refresh transactions
-      const res = await axios.get(`${API_BASE}/transactions/user/${profile._id}`, {
+      const res = await axios.get(`${API_BASE}/transactions?userId=${profile._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransactions(res.data);
@@ -559,6 +559,7 @@ const handleCancel = async (transactionId) => {
                 onCancel={handleCancel}
                 onDelete={handleDelete}
                 onAction={handleAction}
+                onRefresh={fetchUserTransactions}
               />
             ))}
           </ul>
@@ -673,262 +674,195 @@ const handleCancel = async (transactionId) => {
 
       {/* Edit Profile Modal */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-accent text-2xl"
-              onClick={() => setEditOpen(false)}
-              aria-label="Close"
-            >
-              &times;
-            </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-hidden flex flex-col">
 
-            <h2 className="text-xl font-bold text-primary mb-4">
-              Edit Profile
-            </h2>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-primary to-secondary px-6 py-5 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-white">Edit Profile</h2>
+                <p className="text-light/70 text-sm mt-0.5">Update your info and skills</p>
+              </div>
+              <button
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                onClick={() => setEditOpen(false)}
+                aria-label="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              {/* Avatar Upload */}
-              <div className="space-y-2">
-                <label className="block text-secondary font-semibold">
-                  Avatar
-                </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0">
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover rounded-full"
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto flex-1 px-6 py-6">
+              <form onSubmit={handleEditSubmit} className="space-y-6" id="edit-profile-form">
+
+                {/* Avatar */}
+                <div>
+                  <p className="text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-3">Photo</p>
+                  <div className="flex items-center gap-5 bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-2xl font-bold overflow-hidden shrink-0 shadow-md">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : profile.avatar ? (
+                        <img src={getAvatarUrl(profile.avatar)} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(profile)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="block w-full text-sm text-gray-500
+                          file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0
+                          file:text-sm file:font-semibold file:bg-accent file:text-white
+                          hover:file:bg-secondary file:transition-colors file:cursor-pointer"
+                        onChange={handleAvatarChange}
+                        ref={fileInputRef}
+                        disabled={avatarUploading || editLoading}
                       />
-                    ) : profile.avatar ? (
-                      <img
-                        src={getAvatarUrl(profile.avatar)}
-                        alt="Current Avatar"
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      getInitials(profile)
-                    )}
+                      <p className="text-xs text-gray-400 mt-2">JPG, PNG or GIF · Max 2MB</p>
+                      {avatarUploading && <p className="text-accent text-xs mt-1 animate-pulse">Uploading…</p>}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-accent file:text-white
-                  hover:file:bg-secondary"
-                      onChange={handleAvatarChange}
-                      ref={fileInputRef}
-                      disabled={avatarUploading || editLoading}
-                    />
-                    {avatarUploading && (
-                      <div className="text-accent text-xs animate-pulse">
-                        Uploading avatar...
+                  {avatarError && <p className="text-red-500 text-sm mt-2">{avatarError}</p>}
+                </div>
+
+                {/* Bio */}
+                <div>
+                  <p className="text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-3">About You</p>
+                  <textarea
+                    name="bio"
+                    value={editData.bio}
+                    onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                    className="w-full border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent focus:bg-white transition-all resize-none"
+                    rows={3}
+                    placeholder="Tell the community what you're about…"
+                  />
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <p className="text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-3">Skills I Can Teach</p>
+                  <div className="space-y-2">
+                    {editData.skills.map((skill, index) => (
+                      <div key={index} className="flex items-start gap-2 bg-gray-50 rounded-xl p-2 border border-gray-100">
+                        <CategorySkillInput
+                          skill={skill}
+                          categories={categories}
+                          onChange={(updated) => handleSkillChange("skills", index, updated)}
+                          className="flex-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSkill("skills", index)}
+                          className="mt-1.5 w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
-                    )}
+                    ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => addSkill("skills")}
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-secondary transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Add Skill
+                  </button>
                 </div>
-                {avatarError && (
-                  <div className="text-red-600 text-sm">{avatarError}</div>
+
+                {/* Learning */}
+                <div>
+                  <p className="text-xs font-semibold text-secondary/50 uppercase tracking-widest mb-3">Skills I Want to Learn</p>
+                  <div className="space-y-2">
+                    {editData.learning.map((skill, index) => (
+                      <div key={index} className="flex items-start gap-2 bg-gray-50 rounded-xl p-2 border border-gray-100">
+                        <CategorySkillInput
+                          skill={skill}
+                          categories={categories}
+                          onChange={(updated) => handleSkillChange("learning", index, updated)}
+                          className="flex-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSkill("learning", index)}
+                          className="mt-1.5 w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addSkill("learning")}
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-secondary transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Add Learning Goal
+                  </button>
+                </div>
+
+                {/* Status */}
+                {editError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {editError}
+                  </div>
                 )}
-              </div>
+                {editSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-sm rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {editSuccess}
+                  </div>
+                )}
+              </form>
+            </div>
 
-              {/* Bio */}
-              <div className="space-y-2">
-                <label className="block text-secondary font-semibold">
-                  Bio
-                </label>
-                <textarea
-                  name="bio"
-                  value={editData.bio}
-                  onChange={(e) =>
-                    setEditData({ ...editData, bio: e.target.value })
-                  }
-                  className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-accent focus:border-transparent"
-                  rows={3}
-                  placeholder="Tell us about yourself..."
-                />
-              </div>
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                disabled={editLoading}
+                className="flex-1 py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="edit-profile-form"
+                disabled={editLoading || avatarUploading}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-bold hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:translate-y-0 flex items-center justify-center gap-2"
+              >
+                {editLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving…
+                  </>
+                ) : "Save Changes"}
+              </button>
+            </div>
 
-              {/* Skills */}
-              <div className="space-y-2">
-                <label className="block text-secondary font-semibold">
-                  Skills
-                </label>
-                <div className="space-y-3">
-                  {editData.skills.map((skill, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <CategorySkillInput
-                        skill={skill}
-                        categories={categories}
-                        onChange={(updated) =>
-                          handleSkillChange("skills", index, updated)
-                        }
-                        className="flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSkill("skills", index)}
-                        className="mt-2 text-red-500 hover:text-red-700"
-                        title="Remove skill"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => addSkill("skills")}
-                  className="mt-2 text-sm text-accent hover:text-secondary flex items-center gap-1"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Add Skill
-                </button>
-              </div>
-
-              {/* Learning */}
-              <div className="space-y-2">
-                <label className="block text-secondary font-semibold">
-                  Learning Goals
-                </label>
-                <div className="space-y-3">
-                  {editData.learning.map((skill, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <CategorySkillInput
-                        skill={skill}
-                        categories={categories}
-                        onChange={(updated) =>
-                          handleSkillChange("learning", index, updated)
-                        }
-                        className="flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSkill("learning", index)}
-                        className="mt-2 text-red-500 hover:text-red-700"
-                        title="Remove learning goal"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => addSkill("learning")}
-                  className="mt-2 text-sm text-accent hover:text-secondary flex items-center gap-1"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Add Learning Goal
-                </button>
-              </div>
-
-              {/* Status Messages */}
-              {editError && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
-                  {editError}
-                </div>
-              )}
-              {editSuccess && (
-                <div className="p-3 bg-green-50 text-green-600 text-sm rounded-lg">
-                  {editSuccess}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setEditOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  disabled={editLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-accent text-white rounded-lg font-semibold hover:bg-secondary disabled:opacity-70 flex items-center gap-2"
-                  disabled={editLoading || avatarUploading}
-                >
-                  {editLoading ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

@@ -130,9 +130,6 @@ const login = async (req, res) => {
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
 
-    // Additional debug - hash the input password with same salt to compare
-    const newHash = await bcrypt.hash(password, 12);
-
     if (!isMatch) {
       console.log("Password comparison failed");
       return res.status(401).json({ message: "Invalid credentials" });

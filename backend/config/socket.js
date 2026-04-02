@@ -1,6 +1,4 @@
-// backend/config/socket.js
 
-// DO NOT require('../server') here. It causes a circular dependency.
 
 const emitNotification = (req, notificationData) => {
     // Get the io instance from the Express app, which is attached to the request (req)

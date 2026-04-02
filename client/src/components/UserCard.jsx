@@ -2,13 +2,7 @@ import { Link } from "react-router-dom";
 
 const getInitials = (user) => {
   if (!user) return "";
-  if (user.name) {
-    return user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  }
+  if (user.name) return user.name.split(" ").map((n) => n[0]).join("").toUpperCase();
   if (user.email) return user.email[0].toUpperCase();
   return "";
 };
@@ -20,49 +14,47 @@ const getAvatarUrl = (avatarPath) => {
 };
 
 const UserCard = ({ user }) => (
-  <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center border-2 border-transparent hover:border-accent transition">
-    {user.avatar ? (
-      <img
-        src={getAvatarUrl(user.avatar)}
-        alt="Profile"
-        className="w-16 h-16 rounded-full object-cover mb-3"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = null;
-          // Fallback to initials if image fails to load
-          e.target.outerHTML = `
-            <div class="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold mb-3">
-              ${getInitials(user)}
-            </div>
-          `;
-        }}
-      />
-    ) : (
-      <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-bold mb-3">
-        {getInitials(user)}
-      </div>
+  <div className="group bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center hover:shadow-glow hover:-translate-y-1 transition-all duration-300">
+    {/* Avatar */}
+    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-2xl font-bold mb-4 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300">
+      {user.avatar ? (
+        <img
+          src={getAvatarUrl(user.avatar)}
+          alt="Profile"
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.style.display = "none"; }}
+        />
+      ) : getInitials(user)}
+    </div>
+
+    {/* Name */}
+    <div className="font-bold text-primary text-lg mb-1 capitalize text-center">{user.name}</div>
+
+    {/* Bio */}
+    {user.bio && (
+      <p className="text-secondary/60 text-xs text-center mb-3 line-clamp-2">{user.bio}</p>
     )}
-    <div className="font-bold text-primary text-lg mb-1 capitalize">{user.name}</div>
-    {user.skills && user.skills.length > 0 && (
-      <div className="flex flex-wrap gap-2 justify-center mb-2">
+
+    {/* Skills */}
+    {user.skills?.length > 0 && (
+      <div className="flex flex-wrap gap-1.5 justify-center mb-4">
         {user.skills.slice(0, 3).map((skill) => (
-          <span
-            key={skill._id}
-            className="bg-light text-secondary px-2 py-1 rounded text-xs"
+          <span key={skill._id}
+            className="bg-gradient-to-r from-primary/10 to-accent/10 text-primary border border-accent/20 px-2.5 py-1 rounded-full text-xs font-semibold capitalize"
           >
-            {typeof skill === "string"
-              ? skill.replace(/-/g, " ")
-              : skill.name.replace(/-/g, " ")}
+            {typeof skill === "string" ? skill.replace(/-/g, " ") : skill.name.replace(/-/g, " ")}
           </span>
         ))}
         {user.skills.length > 3 && (
-          <span className="text-xs text-accent">+{user.skills.length - 3} more</span>
+          <span className="text-xs text-accent font-semibold">+{user.skills.length - 3}</span>
         )}
       </div>
     )}
+
+    {/* View Profile Button */}
     <Link
       to={`/profile/${user._id}`}
-      className="mt-2 text-accent hover:underline text-sm font-semibold"
+      className="mt-auto w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-sm font-bold text-center hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200"
     >
       View Profile
     </Link>
