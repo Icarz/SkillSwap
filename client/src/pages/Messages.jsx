@@ -32,7 +32,7 @@ const Avatar = ({ user, size = "md" }) => {
 
 const Messages = () => {
   const { token, user } = useAuth();
-  const { socket, isConnected, joinUserRoom } = useSocket();
+  const { socket, isConnected, isReconnecting } = useSocket();
   const [inbox, setInbox] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [thread, setThread] = useState([]);
@@ -80,29 +80,43 @@ const Messages = () => {
     setLoadingThread(true);
     setErrorThread("");
     axios.get(`${API_BASE}/messages/${user.id}/${selectedUserId}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => { setThread(res.data); setLoadingThread(false); setTimeout(scrollToBottom, 100); })
+      .then((res) => { setThread(res.data.messages ?? res.data); setLoadingThread(false); setTimeout(scrollToBottom, 100); })
       .catch(() => { setErrorThread("Failed to load conversation."); setLoadingThread(false); });
   }, [selectedUser, token, user?.id]);
 
   useEffect(() => {
-    if (socket && user) {
-      joinUserRoom();
-      socket.on("new-message", (newMessage) => {
-        const currentUserId = getId(user);
-        const selectedUserId = getId(selectedUser);
-        const newMessageSenderId = getId(newMessage.sender);
-        const newMessageReceiverId = getId(newMessage.receiver);
-        const isForCurrentThread = selectedUser && (newMessageSenderId === selectedUserId || newMessageReceiverId === selectedUserId);
-        const isRelevant = newMessageSenderId === currentUserId || newMessageReceiverId === currentUserId;
-        if (isForCurrentThread) { setThread((prev) => [...prev, newMessage]); setTimeout(scrollToBottom, 100); }
-        if (isRelevant) {
-          axios.get(`${API_BASE}/messages/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => setInbox(groupInbox(res.data))).catch(console.error);
-        }
+    if (!socket || !user) return;
+
+    const handleNewMessage = (newMessage) => {
+      const currentUserId = getId(user);
+      const selectedUserId = getId(selectedUser);
+      const senderId = getId(newMessage.sender);
+      const receiverId = getId(newMessage.receiver);
+
+      // Add to thread if this message belongs to the open conversation
+      const isForCurrentThread =
+        selectedUser &&
+        (senderId === selectedUserId || receiverId === selectedUserId);
+      if (isForCurrentThread) {
+        setThread((prev) => [...prev, newMessage]);
+        setTimeout(scrollToBottom, 100);
+      }
+
+      // Update inbox list incrementally — no re-fetch needed
+      const otherId = senderId === currentUserId ? receiverId : senderId;
+      const otherUser = senderId === currentUserId ? newMessage.receiver : newMessage.sender;
+      setInbox((prev) => {
+        const exists = prev.some((c) => getId(c.user) === otherId);
+        const updated = exists
+          ? prev.map((c) => getId(c.user) === otherId ? { ...c, lastMessage: newMessage } : c)
+          : [{ user: otherUser, lastMessage: newMessage }, ...prev];
+        return updated.sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp));
       });
-      return () => { socket.off("new-message"); };
-    }
-  }, [socket, user?.id, selectedUser, token, joinUserRoom]);
+    };
+
+    socket.on("new-message", handleNewMessage);
+    return () => { socket.off("new-message", handleNewMessage); };
+  }, [socket, user?.id, selectedUser]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -111,16 +125,26 @@ const Messages = () => {
     if (!receiverId) { setErrorThread("Invalid recipient"); return; }
     setSending(true);
     try {
-      const response = await axios.post(`${API_BASE}/messages`, { receiver: receiverId, content: message }, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.post(
+        `${API_BASE}/messages`,
+        { receiver: receiverId, content: message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       const savedMessage = response.data.data;
-      if (socket && isConnected) socket.emit("send-message", savedMessage);
+      // Add sender's own message to thread (server only emits new-message to receiver)
       setThread((prev) => [...prev, savedMessage]);
+      // Update inbox for sender side incrementally
+      setInbox((prev) => {
+        const exists = prev.some((c) => getId(c.user) === receiverId);
+        const updated = exists
+          ? prev.map((c) => getId(c.user) === receiverId ? { ...c, lastMessage: savedMessage } : c)
+          : [{ user: selectedUser, lastMessage: savedMessage }, ...prev];
+        return updated.sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp));
+      });
       setMessage("");
       setTimeout(scrollToBottom, 100);
-      axios.get(`${API_BASE}/messages/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
-        .then((res) => setInbox(groupInbox(res.data))).catch(console.error);
-    } catch {
-      setErrorThread("Failed to send message.");
+    } catch (err) {
+      setErrorThread(err.response?.data?.error || "Failed to send message.");
     } finally {
       setSending(false);
     }
@@ -141,9 +165,13 @@ const Messages = () => {
             <h1 className="text-3xl font-extrabold text-white">Messages</h1>
           </div>
           {/* Connection Status */}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${isConnected ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-red-500/20 text-red-300 border border-red-500/30"}`}>
-            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-            {isConnected ? "Online" : "Offline"}
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
+            isConnected ? "bg-green-500/20 text-green-300 border border-green-500/30"
+            : isReconnecting ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+            : "bg-red-500/20 text-red-300 border border-red-500/30"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400 animate-pulse" : isReconnecting ? "bg-yellow-400 animate-pulse" : "bg-red-400"}`} />
+            {isConnected ? "Online" : isReconnecting ? "Reconnecting…" : "Offline"}
           </div>
         </div>
       </div>
@@ -249,7 +277,9 @@ const Messages = () => {
                 {/* Send Form */}
                 <div className="px-4 py-4 border-t border-gray-100 bg-gray-50/50">
                   {!isConnected && (
-                    <p className="text-red-400 text-xs mb-2 text-center">Reconnecting…</p>
+                    <p className={`text-xs mb-2 text-center ${isReconnecting ? "text-yellow-500" : "text-red-400"}`}>
+                      {isReconnecting ? "Reconnecting…" : "You are offline. Messages cannot be sent."}
+                    </p>
                   )}
                   <form onSubmit={handleSend} className="flex items-center gap-3">
                     <input

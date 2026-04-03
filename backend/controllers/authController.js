@@ -119,11 +119,9 @@ const login = async (req, res) => {
         .status(400)
         .json({ message: "Email and password are required" });
     }
-    console.log(`Attempting login for email: ${email}`);
     // Find user with password selected
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      console.log(`No user found for email: ${email}`);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -131,7 +129,6 @@ const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      console.log("Password comparison failed");
       return res.status(401).json({ message: "Invalid credentials" });
     }
     // Generate token and respond with user data

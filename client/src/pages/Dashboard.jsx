@@ -51,7 +51,7 @@ const QuickLink = ({ to, children, onClick }) => (
 
 const Dashboard = () => {
   const { token } = useAuth();
-  const { socket, joinUserRoom } = useSocket();
+  const { socket } = useSocket();
   const [profile, setProfile] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -75,8 +75,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (!token) return;
     setLoadingTx(true);
-    axios.get(`${API_BASE}/transactions`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => { setTransactions(res.data); setLoadingTx(false); })
+    axios.get(`${API_BASE}/transactions?limit=50`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => { setTransactions(res.data.transactions ?? []); setLoadingTx(false); })
       .catch(() => { setErrorTx("Failed to load transactions."); setLoadingTx(false); });
   }, [token]);
 
@@ -89,18 +89,17 @@ const Dashboard = () => {
   }, [profile, token]);
 
   useEffect(() => {
-    if (socket && profile) {
-      joinUserRoom();
-      socket.on("new-notification", (notificationData) => {
-        setNotificationCount((prev) => prev + 1);
-        setNotifications((prev) => [notificationData, ...prev]);
-        if (Notification.permission === "granted") {
-          new Notification("SkillSwap", { body: notificationData.message, icon: "/favicon.ico" });
-        }
-      });
-      return () => { socket.off("new-notification"); };
-    }
-  }, [socket, profile, joinUserRoom]);
+    if (!socket) return;
+    const handleNotification = (notificationData) => {
+      setNotificationCount((prev) => prev + 1);
+      setNotifications((prev) => [notificationData, ...prev]);
+      if (Notification.permission === "granted") {
+        new Notification("SkillSwap", { body: notificationData.message, icon: "/favicon.ico" });
+      }
+    };
+    socket.on("new-notification", handleNotification);
+    return () => { socket.off("new-notification", handleNotification); };
+  }, [socket]);
 
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {

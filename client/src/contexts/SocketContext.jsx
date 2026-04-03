@@ -1,4 +1,3 @@
-// src/contexts/SocketContext.jsx
 import { createContext, useCallback, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { io } from "socket.io-client";
@@ -9,57 +8,71 @@ export const SocketContext = createContext();
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const { user, token } = useAuth();
 
   useEffect(() => {
-    if (user && token) {
-      // Establish Socket.IO connection only if user is authenticated
-      const newSocket = io("http://localhost:5000", {
-        auth: {
-          token: token,
-        },
-      });
-
-      newSocket.on("connect", () => {
-        setIsConnected(true);
-      });
-
-      newSocket.on("disconnect", () => {
-        setIsConnected(false);
-      });
-
-      setSocket(newSocket);
-
-      // Cleanup on unmount or if user/logout changes
-      return () => {
-        newSocket.close();
-        setSocket(null);
-        setIsConnected(false);
-      };
-    } else {
-      // If no user, ensure socket is closed
-      if (socket) {
-        socket.close();
-        setSocket(null);
-        setIsConnected(false);
-      }
+    if (!user || !token) {
+      setSocket((prev) => { prev?.close(); return null; });
+      setIsConnected(false);
+      return;
     }
-  }, [user, token]); // Reconnect if user or token changes
 
-  // Function to join user's personal room
+    const newSocket = io("http://localhost:5000", {
+      auth: { token },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
+
+    newSocket.on("connect", () => {
+      setIsConnected(true);
+      setIsReconnecting(false);
+      // Auto-join the personal room immediately after (re)connect
+      newSocket.emit("join-user-room");
+    });
+
+    newSocket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err.message);
+      setIsConnected(false);
+    });
+
+    newSocket.on("reconnect_attempt", () => {
+      setIsReconnecting(true);
+    });
+
+    newSocket.on("reconnect", () => {
+      setIsReconnecting(false);
+    });
+
+    newSocket.on("reconnect_failed", () => {
+      setIsReconnecting(false);
+      console.error("Socket failed to reconnect after max attempts");
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+      setSocket(null);
+      setIsConnected(false);
+      setIsReconnecting(false);
+    };
+  }, [user, token]);
+
+  // Exposed for components that need to manually re-join (e.g. after navigate)
   const joinUserRoom = useCallback(() => {
-    if (socket && user) {
-      socket.emit("join-user-room", user.id);
+    if (socket?.connected) {
+      socket.emit("join-user-room");
     }
-  }, [socket, user]);
-
-  const value = {
-    socket,
-    isConnected,
-    joinUserRoom,
-  };
+  }, [socket]);
 
   return (
-    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={{ socket, isConnected, isReconnecting, joinUserRoom }}>
+      {children}
+    </SocketContext.Provider>
   );
 };

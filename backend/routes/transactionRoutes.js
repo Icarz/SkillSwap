@@ -6,6 +6,7 @@ const {
   updateTransactionStatus,
   deleteTransaction,
   filterMyTransactions,
+  getPublicUserTransactions,
 } = require("../controllers/transactionController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -15,6 +16,7 @@ router.use(authMiddleware);
 
 router.post("/", createTransaction);
 router.get("/filter", filterMyTransactions);
+router.get("/user/:userId", getPublicUserTransactions);
 router.get("/", getMyTransactions);
 router.patch("/:id", updateTransactionStatus);
 router.delete("/:id", deleteTransaction);

@@ -3,25 +3,39 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ProposeSwapModal from "../components/ProposeSwapModal";
 
-const statusColors = {
-  pending: "bg-yellow-100 text-yellow-700",
-  accepted: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-gray-200 text-gray-600",
-  "proposed-swap": "bg-purple-100 text-purple-700",
-  "accepted-swap": "bg-blue-100 text-blue-700",
-  "rejected-swap": "bg-red-100 text-red-700",
+const statusConfig = {
+  pending:         { label: "Pending",       classes: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  accepted:        { label: "In Progress",   classes: "bg-accent/10 text-accent border border-accent/20" },
+  completed:       { label: "Done",          classes: "bg-green-50 text-green-700 border border-green-200" },
+  cancelled:       { label: "Cancelled",     classes: "bg-gray-100 text-gray-500 border border-gray-200" },
+  "proposed-swap": { label: "Swap Proposed", classes: "bg-purple-50 text-purple-700 border border-purple-200" },
+  "accepted-swap": { label: "Swap Accepted", classes: "bg-teal-50 text-teal-700 border border-teal-200" },
+  "rejected-swap": { label: "Swap Rejected", classes: "bg-red-50 text-red-700 border border-red-200" },
+};
+
+const typeConfig = {
+  offer:   { label: "Offering",   classes: "bg-primary/10 text-primary border border-primary/20" },
+  request: { label: "Requesting", classes: "bg-secondary/10 text-secondary border border-secondary/20" },
+};
+
+const Avatar = ({ name, size = "sm" }) => {
+  const dim = size === "sm" ? "w-5 h-5 text-[10px]" : "w-7 h-7 text-xs";
+  return (
+    <span className={`${dim} rounded-full bg-accent/20 text-secondary font-bold flex items-center justify-center shrink-0`}>
+      {name?.[0]?.toUpperCase() ?? "?"}
+    </span>
+  );
 };
 
 const TransactionItem = ({
   tx,
   actionLoading = {},
-  onAccept = () => {},
-  onComplete = () => {},
-  onCancel = () => {},
-  onDelete = () => {},
-  onAction = () => {},
-  onRefresh = () => {},
+  onAccept,
+  onComplete,
+  onCancel,
+  onDelete,
+  onAction,
+  onRefresh,
 }) => {
   const { user } = useAuth();
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
@@ -33,149 +47,224 @@ const TransactionItem = ({
     tx.status === "pending";
 
   const isUsersTransaction = tx.user?._id === user?.id;
-  const isProposedSwap = tx.status === "proposed-swap";
-  const isAcceptedSwap = tx.status === "accepted-swap";
+  const isProposedSwap     = tx.status === "proposed-swap";
+  const isAcceptedSwap     = tx.status === "accepted-swap";
+  const isLoading          = actionLoading[tx._id];
 
-  const handleSwapSuccess = () => {
-    setIsSwapModalOpen(false);
-    onRefresh();
-  };
+  const statusCfg = statusConfig[tx.status] ?? { label: tx.status, classes: "bg-gray-100 text-gray-500 border border-gray-200" };
+  const typeCfg   = typeConfig[tx.type]     ?? { label: tx.type,   classes: "bg-gray-100 text-gray-500 border border-gray-200" };
+
+  const hasActions = onAccept || onComplete || onCancel || onDelete || onAction;
 
   return (
     <>
-      <li className="flex flex-col md:flex-row md:items-center justify-between bg-light rounded p-4 gap-2">
-        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
-          <div>
-            <span className="font-semibold text-secondary capitalize">
-              {tx.type}
-            </span>{" "}
-            <span className="text-primary font-medium">
+      <li className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow duration-200">
+
+        {/* Header: skill name + badges + date */}
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-bold text-primary">
               {tx.skill?.name?.replace(/-/g, " ") || "Unknown Skill"}
+            </h3>
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${typeCfg.classes}`}>
+              {typeCfg.label}
+            </span>
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${statusCfg.classes}`}>
+              {statusCfg.label}
             </span>
           </div>
-          <div>
-            <span
-              className={`px-2 py-1 rounded text-xs font-semibold ${
-                statusColors[tx.status]
-              }`}
-            >
-              {tx.status}
-            </span>
-          </div>
-          <div className="text-xs text-gray-400">
-            {new Date(tx.createdAt).toLocaleDateString()}
-          </div>
-          {tx.acceptor && (
-            <div className="text-xs text-secondary">
-              Accepted by:{" "}
-              <Link
-                to={`/profile/${tx.acceptor._id}`}
-                className="text-accent hover:underline"
-              >
-                {tx.acceptor.name}
-              </Link>
+          <span className="text-[11px] text-secondary/40 shrink-0">
+            {new Date(tx.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </span>
+        </div>
+
+        {/* Meta: owner + acceptor */}
+        <div className="flex flex-wrap items-center gap-4 text-xs text-secondary/60 mb-3">
+          {tx.user && (
+            <div className="flex items-center gap-1.5">
+              <Avatar name={tx.user.name} />
+              <span>
+                by{" "}
+                <Link
+                  to={`/profile/${tx.user._id}`}
+                  className="font-semibold text-secondary hover:text-primary transition-colors"
+                >
+                  {tx.user.name}
+                </Link>
+              </span>
             </div>
           )}
-
-          {/* Display swap information */}
-          {tx.linkedTransaction && (
-            <div className="text-xs text-purple-600">
-              {isProposedSwap && "Swap proposed"}
-              {isAcceptedSwap && "Swap accepted"}
-              {tx.status === "rejected-swap" && "Swap rejected"}
+          {tx.acceptor && (
+            <div className="flex items-center gap-1.5">
+              <Avatar name={tx.acceptor.name} />
+              <span>
+                accepted by{" "}
+                <Link
+                  to={`/profile/${tx.acceptor._id}`}
+                  className="font-semibold text-secondary hover:text-primary transition-colors"
+                >
+                  {tx.acceptor.name}
+                </Link>
+              </span>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 mt-2 md:mt-0">
-          {/* Propose Swap Button */}
-          {isAnotherUsersOpenRequest && (
-            <button
-              className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 text-xs"
-              onClick={() => setIsSwapModalOpen(true)}
-            >
-              Propose Swap
-            </button>
-          )}
+        {/* In Progress banner */}
+        {tx.status === "accepted" && tx.acceptor && (
+          <div className="flex items-center gap-3 mb-3 px-3 py-2.5 bg-accent/5 border border-accent/20 rounded-xl">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-accent flex-wrap">
+              <span>In Progress</span>
+              <span className="text-secondary/30">·</span>
+              <div className="flex items-center gap-1.5 text-secondary/70 font-normal">
+                <Avatar name={tx.user?.name} />
+                <Link to={`/profile/${tx.user?._id}`} className="hover:text-primary transition-colors font-semibold">
+                  {tx.user?.name}
+                </Link>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <Avatar name={tx.acceptor?.name} />
+                <Link to={`/profile/${tx.acceptor?._id}`} className="hover:text-primary transition-colors font-semibold">
+                  {tx.acceptor?.name}
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
-          {/* Accept/Reject Swap Buttons (for transaction owner) */}
-          {isProposedSwap && isUsersTransaction && (
-            <>
+        {/* Done banner */}
+        {tx.status === "completed" && tx.acceptor && (
+          <div className="flex items-center gap-3 mb-3 px-3 py-2.5 bg-green-50 border border-green-200 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex items-center gap-2 text-xs font-semibold text-green-700 flex-wrap">
+              <span>Done</span>
+              <span className="text-green-300">·</span>
+              <div className="flex items-center gap-1.5 text-green-800/70 font-normal">
+                <Avatar name={tx.user?.name} />
+                <Link to={`/profile/${tx.user?._id}`} className="hover:text-green-900 transition-colors font-semibold">
+                  {tx.user?.name}
+                </Link>
+                <span className="text-green-400">&amp;</span>
+                <Avatar name={tx.acceptor?.name} />
+                <Link to={`/profile/${tx.acceptor?._id}`} className="hover:text-green-900 transition-colors font-semibold">
+                  {tx.acceptor?.name}
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Swap banner */}
+        {tx.linkedTransaction && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-700 font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            {isProposedSwap  && "Swap proposal pending response"}
+            {isAcceptedSwap  && "Swap accepted — both parties agreed"}
+            {tx.status === "rejected-swap" && "Swap was declined"}
+          </div>
+        )}
+
+        {/* Actions */}
+        {hasActions && (
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
+
+            {/* Propose Swap */}
+            {isAnotherUsersOpenRequest && onAction && (
               <button
-                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-xs"
-                onClick={() => onAction(tx._id, "accepted-swap")}
-                disabled={actionLoading[tx._id]}
+                className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
+                onClick={() => setIsSwapModalOpen(true)}
+                disabled={isLoading}
               >
-                {actionLoading[tx._id] ? "Processing..." : "Accept Swap"}
+                Propose Swap
               </button>
-              <button
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs"
-                onClick={() => onAction(tx._id, "rejected-swap")}
-                disabled={actionLoading[tx._id]}
-              >
-                {actionLoading[tx._id] ? "Processing..." : "Reject Swap"}
-              </button>
-            </>
-          )}
+            )}
 
-          {/* Waiting message for non-owners of proposed swaps */}
-          {isProposedSwap && !isUsersTransaction && (
-            <span className="text-xs text-gray-500 italic">
-              Waiting for response...
-            </span>
-          )}
+            {/* Accept / Reject Swap */}
+            {isProposedSwap && isUsersTransaction && onAction && (
+              <>
+                <button
+                  className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+                  onClick={() => onAction(tx._id, "accepted-swap")}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing…" : "Accept Swap"}
+                </button>
+                <button
+                  className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+                  onClick={() => onAction(tx._id, "rejected-swap")}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing…" : "Reject Swap"}
+                </button>
+              </>
+            )}
 
-          {/* Original action buttons (conditionally hidden during swaps) */}
-          {!isProposedSwap && !isAcceptedSwap && (
-            <>
-              {tx.status === "pending" &&
-                tx.type === "request" &&
-                !tx.acceptor && (
+            {/* Waiting indicator */}
+            {isProposedSwap && !isUsersTransaction && (
+              <span className="flex items-center gap-1.5 text-xs text-secondary/50 italic">
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
+                Waiting for response…
+              </span>
+            )}
+
+            {/* Standard actions */}
+            {!isProposedSwap && !isAcceptedSwap && (
+              <>
+                {tx.status === "pending" && !tx.acceptor && !isUsersTransaction && onAccept && (
                   <button
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs"
+                    className="px-3 py-1.5 bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-accent text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
                     onClick={() => onAccept(tx._id)}
-                    disabled={actionLoading[tx._id]}
+                    disabled={isLoading}
                   >
-                    {actionLoading[tx._id] ? "Processing..." : "Accept"}
+                    {isLoading ? "Processing…" : "Accept"}
                   </button>
                 )}
-              {tx.status === "accepted" && (
-                <button
-                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-xs"
-                  onClick={() => onComplete(tx._id)}
-                  disabled={actionLoading[tx._id]}
-                >
-                  {actionLoading[tx._id] ? "Processing..." : "Complete"}
-                </button>
-              )}
-              {tx.status === "pending" && (
-                <button
-                  className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500 text-xs"
-                  onClick={() => onCancel(tx._id)}
-                  disabled={actionLoading[tx._id]}
-                >
-                  {actionLoading[tx._id] ? "Processing..." : "Cancel"}
-                </button>
-              )}
-            </>
-          )}
+                {tx.status === "accepted" && onComplete && (
+                  <button
+                    className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+                    onClick={() => onComplete(tx._id)}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Processing…" : "Complete"}
+                  </button>
+                )}
+                {tx.status === "pending" && onCancel && (
+                  <button
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
+                    onClick={() => onCancel(tx._id)}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Processing…" : "Cancel"}
+                  </button>
+                )}
+              </>
+            )}
 
-          {/* Delete button (always available) */}
-          <button
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs"
-            onClick={() => onDelete(tx._id)}
-            disabled={actionLoading[tx._id]}
-          >
-            {actionLoading[tx._id] ? "Deleting..." : "Delete"}
-          </button>
-        </div>
+            {/* Delete — pushed to the right */}
+            {onDelete && (
+              <button
+                className="ml-auto px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl border border-red-100 transition-colors disabled:opacity-50"
+                onClick={() => onDelete(tx._id)}
+                disabled={isLoading}
+              >
+                {isLoading ? "Deleting…" : "Delete"}
+              </button>
+            )}
+          </div>
+        )}
       </li>
 
       {isSwapModalOpen && (
         <ProposeSwapModal
           targetTransaction={tx}
           onClose={() => setIsSwapModalOpen(false)}
-          onSuccess={handleSwapSuccess}
+          onSuccess={() => { setIsSwapModalOpen(false); onRefresh?.(); }}
         />
       )}
     </>

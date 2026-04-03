@@ -23,26 +23,43 @@ const Transactions = () => {
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [createError, setCreateError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_LIMIT = 20;
 
-  const fetchTransactions = () => {
+  const fetchTransactions = (targetPage = page) => {
     setLoading(true);
     setError("");
-    let url = `${API_BASE}/transactions`;
+    const params = new URLSearchParams();
+    params.append("page", targetPage);
+    params.append("limit", PAGE_LIMIT);
+    let base = `${API_BASE}/transactions`;
     if (statusFilter !== "all" || typeFilter !== "all") {
-      const params = new URLSearchParams();
+      base = `${API_BASE}/transactions/filter`;
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (typeFilter !== "all") params.append("type", typeFilter);
-      url = `${API_BASE}/transactions/filter?${params.toString()}`;
     }
-    axios.get(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => { setTransactions(res.data); setLoading(false); })
+    axios.get(`${base}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        setTransactions(res.data.transactions);
+        setTotal(res.data.total);
+        setTotalPages(res.data.pages);
+        setLoading(false);
+      })
       .catch(() => { setError("Failed to load transactions."); setLoading(false); });
   };
 
   useEffect(() => {
-    fetchTransactions();
+    setPage(1);
+    fetchTransactions(1);
     // eslint-disable-next-line
   }, [token, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    fetchTransactions(page);
+    // eslint-disable-next-line
+  }, [page]);
 
   useEffect(() => {
     if (!creating) return;
@@ -69,7 +86,8 @@ const Transactions = () => {
       setCreating(false);
       setNewSkill("");
       setNewType("offer");
-      fetchTransactions();
+      setPage(1);
+      fetchTransactions(1);
     } catch (err) {
       setCreateError(err.response?.data?.error || "Failed to create transaction.");
       setCreating(false);
@@ -89,19 +107,22 @@ const Transactions = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this transaction? This cannot be undone.")) return;
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
       await axios.delete(`${API_BASE}/transactions/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       fetchTransactions();
-    } catch { /* silent */ } finally {
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to delete transaction.");
+    } finally {
       setActionLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  const pendingCount       = transactions.filter((tx) => tx.status === "pending").length;
-  const completedCount     = transactions.filter((tx) => tx.status === "completed").length;
-  const proposedSwapCount  = transactions.filter((tx) => tx.status === "proposed-swap").length;
-  const acceptedSwapCount  = transactions.filter((tx) => tx.status === "accepted-swap").length;
+  const pendingCount      = transactions.filter((tx) => tx.status === "pending").length;
+  const completedCount    = transactions.filter((tx) => tx.status === "completed").length;
+  const proposedSwapCount = transactions.filter((tx) => tx.status === "proposed-swap").length;
+  const acceptedSwapCount = transactions.filter((tx) => tx.status === "accepted-swap").length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/10">
@@ -143,7 +164,7 @@ const Transactions = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Total",         value: transactions.length, gradient: "from-primary to-secondary",  icon: "🔄" },
+            { label: "Total",         value: total,               gradient: "from-primary to-secondary",  icon: "🔄" },
             { label: "Pending",       value: pendingCount,        gradient: "from-yellow-400 to-yellow-500", icon: "⏳" },
             { label: "Swap Proposed", value: proposedSwapCount,   gradient: "from-purple-500 to-purple-600", icon: "🤝" },
             { label: "Completed",     value: completedCount + acceptedSwapCount, gradient: "from-green-500 to-green-600", icon: "✅" },
@@ -265,6 +286,29 @@ const Transactions = () => {
             </ul>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-secondary disabled:opacity-40 hover:border-accent/40 transition"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+            >
+              Previous
+            </button>
+            <span className="text-sm text-secondary/60">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-secondary disabled:opacity-40 hover:border-accent/40 transition"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Quick Links */}
         <div className="flex flex-wrap gap-3">

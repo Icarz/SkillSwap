@@ -9,6 +9,7 @@ const fs = require("fs");
 // 1. Import required modules for Socket.io
 const http = require("http");
 const socketIo = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -35,25 +36,31 @@ const io = socketIo(server, {
   },
 });
 
-// 4. Socket.io connection handling
+// 4a. Socket.io authentication middleware — reject connections without a valid JWT
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error("Authentication required"));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded; // attach verified user to socket
+    next();
+  } catch {
+    next(new Error("Invalid token"));
+  }
+});
+
+// 4b. Socket.io connection handling
 io.on("connection", (socket) => {
-  // console.log('🔌 User connected:', socket.id);
+  // Auto-join the verified user's personal room
+  socket.join(socket.user.id);
 
-  // Join user-specific room for private messaging
-  socket.on("join-user-room", (userId) => {
-    socket.join(userId);
-    // console.log(`👤 User ${userId} joined their room`);
-  });
-
-  // Handle sending messages in real-time
-  socket.on("send-message", (messageData) => {
-    // Broadcast message to recipient's room
-    socket.to(messageData.receiver).emit("receive-message", messageData);
-    // console.log("✉️ Message sent via Socket.IO:", messageData._id);
+  // Allow client to explicitly re-join (e.g. after reconnect) — always uses verified id
+  socket.on("join-user-room", () => {
+    socket.join(socket.user.id);
   });
 
   socket.on("disconnect", () => {
-    // console.log("🔌 User disconnected:", socket.id);
+    // cleanup handled automatically by socket.io
   });
 });
 

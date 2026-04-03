@@ -31,7 +31,12 @@ const proposeSwap = async (req, res) => {
         .json({ error: "You cannot propose a swap on your own request." });
     }
 
-
+    // 4. Validate: offeredSkillId must exist
+    const Skill = require("../models/Skill");
+    const skillExists = await Skill.exists({ _id: offeredSkillId });
+    if (!skillExists) {
+      return res.status(400).json({ error: "Offered skill not found." });
+    }
 
     // 5. Create a new 'offer' transaction from the current user
     const offerTransaction = new Transaction({
@@ -43,7 +48,14 @@ const proposeSwap = async (req, res) => {
       proposedSwap: targetTransactionId, // Track the proposal origin
     });
 
-    // 6. Link the target transaction back to the new offer
+    // 6. Prevent overwriting an existing swap proposal
+    if (targetTransaction.linkedTransaction) {
+      return res
+        .status(400)
+        .json({ error: "A swap has already been proposed for this request." });
+    }
+
+    // Link the target transaction back to the new offer
     targetTransaction.linkedTransaction = offerTransaction._id;
     targetTransaction.status = "proposed-swap"; // Update target status
 

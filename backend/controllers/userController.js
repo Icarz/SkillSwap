@@ -166,20 +166,7 @@ const updateProfile = async (req, res) => {
 
 // ===== NEW: Upload Avatar Controller =====
 const uploadAvatar = async (req, res) => {
-  console.log("Upload request received", {
-    headers: req.headers,
-    file: req.file
-      ? {
-          originalname: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-        }
-      : null,
-    user: req.user,
-  });
-
   if (!req.file) {
-    console.error("No file received in upload");
     return res.status(400).json({
       error: "No file uploaded",
       details: "Please select an image file",
@@ -194,7 +181,6 @@ const uploadAvatar = async (req, res) => {
       { new: true }
     ).select("-password");
 
-    console.log("Avatar successfully uploaded:", avatarUrl);
     const populatedUser = await populateUser(User.findById(user._id));
     return res.json({
       message: "Avatar uploaded successfully",

@@ -36,17 +36,14 @@ router.put("/me", updateProfile);
 router.put(
   "/me/avatar",
   (req, res, next) => {
-    console.log("Multer processing starting...");
     uploadAvatarMulter(req, res, (err) => {
       if (err) {
-        console.error("Multer processing error:", err);
         return res.status(400).json({
           error: err.message,
           code: err.code,
           field: err.field,
         });
       }
-      console.log("Multer processing completed");
       next();
     });
   },

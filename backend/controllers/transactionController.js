@@ -1,4 +1,5 @@
 const Transaction = require("../models/Transaction");
+const Skill = require("../models/Skill");
 
 // ✅ Create a new transaction (offer or request)
 const createTransaction = async (req, res) => {
@@ -9,6 +10,11 @@ const createTransaction = async (req, res) => {
   }
 
   try {
+    const skillExists = await Skill.exists({ _id: skill });
+    if (!skillExists) {
+      return res.status(400).json({ error: "Skill not found" });
+    }
+
     const transaction = new Transaction({
       user: req.user.id,
       skill,
@@ -23,30 +29,33 @@ const createTransaction = async (req, res) => {
   }
 };
 
-// ✅ Get transactions for a user (can be own or other users)
-// ✅ Get transactions for a user (both owned and accepted)
+// ✅ Get transactions for the authenticated user (both owned and accepted)
 const getMyTransactions = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip  = (page - 1) * limit;
 
-    // Use the provided userId or default to the authenticated user
-    const targetUserId = userId || req.user.id;
-
-    // Find transactions where user is either OWNER or ACCEPTOR
-    const transactions = await Transaction.find({
+    const query = {
       $or: [
-        { user: targetUserId },        // User owns the transaction
-        { acceptor: targetUserId }     // User accepted the transaction
-      ]
-    })
-    .populate("user", "name email avatar")
-    .populate("acceptor", "name email avatar")
-    .populate("skill", "name category")
-    // .populate("offeredSkill", "name category")
-    .populate("linkedTransaction")
-    .sort({ createdAt: -1 });
+        { user: req.user.id },
+        { acceptor: req.user.id },
+      ],
+    };
 
-    res.json(transactions);
+    const [transactions, total] = await Promise.all([
+      Transaction.find(query)
+        .populate("user", "name email avatar")
+        .populate("acceptor", "name email avatar")
+        .populate("skill", "name category")
+        .populate("linkedTransaction")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Transaction.countDocuments(query),
+    ]);
+
+    res.json({ transactions, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to retrieve transactions" });
@@ -164,14 +173,14 @@ const filterMyTransactions = async (req, res) => {
   const allowedStatuses = ["pending", "accepted", "completed", "cancelled", "proposed-swap", "accepted-swap", "rejected-swap"];
   const allowedTypes = ["offer", "request"];
 
-  const filters = { user: req.user.id };
+  const andFilters = [];
 
   // Add status filter if provided and valid
   if (status) {
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status filter" });
     }
-    filters.status = status;
+    andFilters.push({ status });
   }
 
   // Add type filter if provided and valid
@@ -179,34 +188,78 @@ const filterMyTransactions = async (req, res) => {
     if (!allowedTypes.includes(type)) {
       return res.status(400).json({ error: "Invalid type filter" });
     }
-    filters.type = type;
+    andFilters.push({ type });
   }
-  try {
-    const transactions = await Transaction.find(filters)
-      .populate("skill")
-      .sort({ createdAt: -1 });
 
-    res.json(transactions);
+  const query = {
+    $or: [{ user: req.user.id }, { acceptor: req.user.id }],
+    ...(andFilters.length > 0 ? { $and: andFilters } : {}),
+  };
+
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+  const skip  = (page - 1) * limit;
+
+  try {
+    const [transactions, total] = await Promise.all([
+      Transaction.find(query)
+        .populate("user", "name email avatar")
+        .populate("acceptor", "name email avatar")
+        .populate("skill")
+        .populate("linkedTransaction")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Transaction.countDocuments(query),
+    ]);
+
+    res.json({ transactions, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to filter transactions" });
   }
 };
 
-// ✅ Delete a transaction (optional)
+// ✅ Delete a transaction (owner or acceptor only)
 const deleteTransaction = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deleted = await Transaction.findByIdAndDelete(id);
-    if (!deleted) {
+    const transaction = await Transaction.findById(id);
+    if (!transaction) {
       return res.status(404).json({ error: "Transaction not found" });
     }
 
+    const isOwner = transaction.user.toString() === req.user.id;
+    const isAcceptor = transaction.acceptor?.toString() === req.user.id;
+    if (!isOwner && !isAcceptor) {
+      return res.status(403).json({ error: "Not authorized to delete this transaction" });
+    }
+
+    await transaction.deleteOne();
     res.json({ message: "Transaction deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete transaction" });
+  }
+};
+
+// 🌐 Get pending transactions for any user (public profile view)
+const getPublicUserTransactions = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const transactions = await Transaction.find({
+      user: userId,
+      status: "pending",
+    })
+      .populate("user", "name email avatar")
+      .populate("skill", "name category")
+      .sort({ createdAt: -1 });
+
+    res.json(transactions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to retrieve transactions" });
   }
 };
 
@@ -217,4 +270,5 @@ module.exports = {
   updateTransactionStatus,
   deleteTransaction,
   filterMyTransactions,
+  getPublicUserTransactions,
 };
