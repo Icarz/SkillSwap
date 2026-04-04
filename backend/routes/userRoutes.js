@@ -7,6 +7,7 @@ const {
   getProfile,
   updateProfile,
   getUserById,
+  getAllUsers,
   searchUsers,
   findMatches,
   createReview,
@@ -51,6 +52,7 @@ router.put(
 );
 
 // Skill-based routes
+router.get("/all", getAllUsers);
 router.get("/search", apiLimiter, searchUsers); // Add rate limiting to search
 router.get("/matches", findMatches);
 

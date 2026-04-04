@@ -551,8 +551,16 @@ const Profile = () => {
             ))}
           </ul>
         ) : (
-          <div className="bg-light rounded p-4 text-center text-gray-500">
-            No transactions yet.
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 px-6 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl mb-4 shadow-inner">
+              🔄
+            </div>
+            <h3 className="text-lg font-bold text-primary mb-1">No transactions yet</h3>
+            <p className="text-secondary/50 text-sm max-w-xs">
+              {isOwnProfile
+                ? "Propose a skill swap to get started."
+                : `${profile.name} hasn't made any transactions yet.`}
+            </p>
           </div>
         )}
       </div>

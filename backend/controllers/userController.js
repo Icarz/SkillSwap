@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Review = require("../models/Review");
+const Transaction = require("../models/Transaction");
 const Skill = require("../models/Skill");
 const Category = require("../models/Category");
 
@@ -50,6 +51,36 @@ const populateUser = (query) => {
       path: "category",
       select: "name icon",
     },
+  });
+};
+
+// Utility: Attach transactionCount to an array of user plain objects
+const attachTransactionCounts = async (users) => {
+  const ids = users.map((u) => u._id);
+  const stats = await Transaction.aggregate([
+    { $match: { status: { $ne: "cancelled" }, $or: [{ user: { $in: ids } }, { acceptor: { $in: ids } }] } },
+    { $project: { participants: { $setUnion: [["$user"], [{ $ifNull: ["$acceptor", "$user"] }]] } } },
+    { $unwind: "$participants" },
+    { $match: { participants: { $in: ids } } },
+    { $group: { _id: "$participants", count: { $sum: 1 } } },
+  ]);
+  const map = {};
+  stats.forEach((s) => { map[s._id.toString()] = s.count; });
+  return users.map((u) => ({ ...u, transactionCount: map[u._id.toString()] ?? 0 }));
+};
+
+// Utility: Attach avgRating + reviewCount to an array of user plain objects
+const attachRatings = async (users) => {
+  const ids = users.map((u) => u._id);
+  const stats = await Review.aggregate([
+    { $match: { reviewedUser: { $in: ids } } },
+    { $group: { _id: "$reviewedUser", avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+  ]);
+  const map = {};
+  stats.forEach((s) => { map[s._id.toString()] = s; });
+  return users.map((u) => {
+    const s = map[u._id.toString()];
+    return { ...u, avgRating: s ? Math.round(s.avg * 10) / 10 : null, reviewCount: s ? s.count : 0 };
   });
 };
 
@@ -197,6 +228,21 @@ const uploadAvatar = async (req, res) => {
 };
 // ===== END uploadAvatar =====
 
+// Get all users
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await populateUser(
+      User.find({ _id: { $ne: req.user.id } }).select("-password").limit(50)
+    );
+    const withRatings = await attachRatings(users.map((u) => u.toObject()));
+    const result = await attachTransactionCounts(withRatings);
+    res.json(result);
+  } catch (err) {
+    console.error("[getAllUsers] Error:", err.message);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
+
 // Search users by skills
 const searchUsers = async (req, res) => {
   try {
@@ -232,12 +278,14 @@ const searchUsers = async (req, res) => {
       }).select("-password")
     );
 
-    const results = users.map((user) => ({
+    const plain = users.map((user) => ({
       ...user.toObject(),
       matchedSkills: user.skills.filter((skill) =>
         searchSkills.includes(skill.name.toLowerCase())
       ),
     }));
+    const withRatings = await attachRatings(plain);
+    const results = await attachTransactionCounts(withRatings);
 
     res.json(results);
   } catch (err) {
@@ -367,6 +415,7 @@ module.exports = {
   getProfile,
   getUserById,
   updateProfile,
+  getAllUsers,
   searchUsers,
   findMatches,
   createReview,
