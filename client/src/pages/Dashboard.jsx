@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../hooks/useSocket";
 import { Link } from "react-router-dom";
+import { API_BASE, SOCKET_URL } from "../config";
 import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale } from "chart.js";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -21,10 +22,8 @@ const getInitials = (user) => {
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (avatarPath.startsWith("http")) return avatarPath;
-  return `http://localhost:5000${avatarPath}`;
+  return `${SOCKET_URL}${avatarPath}`;
 };
-
-const API_BASE = "http://localhost:5000/api";
 
 const StatCard = ({ value, label, gradient, icon }) => (
   <div className={`bg-gradient-to-br ${gradient} rounded-2xl p-5 text-white shadow-md`}>

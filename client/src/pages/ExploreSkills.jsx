@@ -3,7 +3,7 @@ import axios from "axios";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE } from "../config";
 
 const ExploreSkills = () => {
   const [categories, setCategories] = useState([]);

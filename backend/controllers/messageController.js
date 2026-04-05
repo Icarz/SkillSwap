@@ -27,6 +27,9 @@ exports.sendMessage = async (req, res) => {
     if (!content || !content.trim()) {
       return res.status(400).json({ error: "Message content is required" });
     }
+    if (content.trim().length > 2000) {
+      return res.status(400).json({ error: "Message too long (max 2000 characters)" });
+    }
 
     const message = new Message({ sender, receiver, content: content.trim() });
     await message.save();
@@ -35,15 +38,17 @@ exports.sendMessage = async (req, res) => {
       .populate("sender", "name avatar")
       .populate("receiver", "name avatar");
 
-    // Emit to receiver's room only (server is authoritative — no client re-emit needed)
+    // Emit real-time events if Socket.io is available
     const io = req.app.get("io");
-    io.to(receiver.toString()).emit("new-message", populatedMessage);
-    io.to(receiver.toString()).emit("new-notification", {
-      type: "message",
-      message: `New message from ${populatedMessage.sender.name}`,
-      relatedId: populatedMessage._id,
-      timestamp: new Date(),
-    });
+    if (io) {
+      io.to(receiver.toString()).emit("new-message", populatedMessage);
+      io.to(receiver.toString()).emit("new-notification", {
+        type: "message",
+        message: `New message from ${populatedMessage.sender.name}`,
+        relatedId: populatedMessage._id,
+        timestamp: new Date(),
+      });
+    }
 
     res.status(201).json({ message: "Message sent successfully", data: populatedMessage });
   } catch (error) {

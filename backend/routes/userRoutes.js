@@ -26,16 +26,18 @@ const apiLimiter = rateLimit({
   message: "Too many requests from this IP, please try again later",
 });
 
+// --- Public routes (no auth required) ---
+router.get("/all", getAllUsers);
+router.get("/search", apiLimiter, searchUsers);
+router.get("/reviews/:userId", getReviews);
+
 // --- Protected routes (require authentication) ---
-router.use(authMiddleware);
+router.get("/me", authMiddleware, getProfile);
+router.put("/me", authMiddleware, updateProfile);
 
-// User profile routes
-router.get("/me", getProfile);
-router.put("/me", updateProfile);
-
-// --- NEW: Upload avatar route ---
 router.put(
   "/me/avatar",
+  authMiddleware,
   (req, res, next) => {
     uploadAvatarMulter(req, res, (err) => {
       if (err) {
@@ -51,15 +53,9 @@ router.put(
   uploadAvatar
 );
 
-// Skill-based routes
-router.get("/all", getAllUsers);
-router.get("/search", apiLimiter, searchUsers); // Add rate limiting to search
-router.get("/matches", findMatches);
-
-// Review routes
-router.post("/review", createReview);
-router.get("/reviews/:userId", getReviews);
-router.delete("/reviews/:reviewId", deleteReview);
+router.get("/matches", authMiddleware, findMatches);
+router.post("/review", authMiddleware, createReview);
+router.delete("/reviews/:reviewId", authMiddleware, deleteReview);
 
 // Public profile route (keep after specific routes)
 router.get("/:userId", getUserById);

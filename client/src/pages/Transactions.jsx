@@ -4,13 +4,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { Link } from "react-router-dom";
 import TransactionItem from "../components/TransactionItem";
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE } from "../config";
 
 const statusFilters = ["all", "pending", "accepted", "completed", "cancelled", "proposed-swap", "accepted-swap", "rejected-swap"];
 const typeFilters   = ["all", "offer", "request"];
 
 const Transactions = () => {
-  const { token } = useAuth();
+  const { token, user: authUser } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -278,7 +278,7 @@ const Transactions = () => {
                   onAccept={(id) => handleAction(id, "accepted")}
                   onComplete={(id) => handleAction(id, "completed")}
                   onCancel={(id) => handleAction(id, "cancelled")}
-                  onDelete={handleDelete}
+                  onDelete={(tx.user?._id ?? tx.user) === authUser?._id ? handleDelete : undefined}
                   onAction={handleAction}
                   onRefresh={fetchTransactions}
                 />

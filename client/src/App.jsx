@@ -27,14 +27,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/explore-skills" element={<ExploreSkills />} />
             <Route path="/explore-users" element={<ExploreUsers />} />
-            
+
             {/* Private Routes */}
             <Route element={<PrivateRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/transactions" element={<Transactions />} />
             </Route>

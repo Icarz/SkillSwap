@@ -5,7 +5,7 @@ import UserCard from "../components/UserCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE } from "../config";
 
 const ExploreUsers = () => {
   const { token } = useAuth();
@@ -21,7 +21,7 @@ const ExploreUsers = () => {
     const fetchAllUsers = async () => {
       try {
         const res = await axios.get(`${API_BASE}/users/all`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         setAllUsers(res.data);
       } catch (err) {
@@ -44,7 +44,7 @@ const ExploreUsers = () => {
     try {
       const res = await axios.get(
         `${API_BASE}/users/search?skills=${encodeURIComponent(query)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
       setSearchResults(res.data);
     } catch (err) {

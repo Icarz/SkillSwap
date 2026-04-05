@@ -16,7 +16,7 @@ const getInitials = (user) => {
   return "";
 };
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE } from "../config";
 
 const Reviews = ({ profile }) => {
   const { token, user: authUser } = useAuth();

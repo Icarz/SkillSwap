@@ -231,9 +231,8 @@ const deleteTransaction = async (req, res) => {
     }
 
     const isOwner = transaction.user.toString() === req.user.id;
-    const isAcceptor = transaction.acceptor?.toString() === req.user.id;
-    if (!isOwner && !isAcceptor) {
-      return res.status(403).json({ error: "Not authorized to delete this transaction" });
+    if (!isOwner) {
+      return res.status(403).json({ error: "Only the transaction creator can delete it" });
     }
 
     await transaction.deleteOne();
@@ -244,15 +243,15 @@ const deleteTransaction = async (req, res) => {
   }
 };
 
-// 🌐 Get pending transactions for any user (public profile view)
+// 🌐 Get all transactions for any user (profile view by logged-in user)
 const getPublicUserTransactions = async (req, res) => {
   const { userId } = req.params;
   try {
     const transactions = await Transaction.find({
-      user: userId,
-      status: "pending",
+      $or: [{ user: userId }, { acceptor: userId }],
     })
       .populate("user", "name email avatar")
+      .populate("acceptor", "name email avatar")
       .populate("skill", "name category")
       .sort({ createdAt: -1 });
 

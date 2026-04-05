@@ -29,7 +29,7 @@ const register = async (req, res) => {
     bio,
     learning = [],
   } = req.body;
-  const password = rawPassword.trim();
+  const password = rawPassword?.trim();
 
   try {
     // Validate required fields
@@ -110,7 +110,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   const { email, password: rawPassword } = req.body;
-  const password = rawPassword.trim();
+  const password = rawPassword?.trim();
 
   try {
     // Validate input

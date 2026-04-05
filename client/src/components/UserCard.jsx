@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { SOCKET_URL } from "../config";
 
 const getInitials = (user) => {
   if (!user) return "";
@@ -10,7 +12,7 @@ const getInitials = (user) => {
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (avatarPath.startsWith("http")) return avatarPath;
-  return `http://localhost:5000${avatarPath}`;
+  return `${SOCKET_URL}${avatarPath}`;
 };
 
 const SkillPills = ({ skills, color }) => {
@@ -51,7 +53,11 @@ const StarRating = ({ avg, count }) => {
   );
 };
 
-const UserCard = ({ user }) => (
+const UserCard = ({ user }) => {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+
+  return (
   <div className="group bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col hover:shadow-glow hover:-translate-y-1 transition-all duration-300">
     {/* Avatar + Name */}
     <div className="flex items-center gap-4 mb-3">
@@ -111,13 +117,23 @@ const UserCard = ({ user }) => (
     </div>
 
     {/* View Profile Button */}
-    <Link
-      to={`/profile/${user._id}`}
-      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-sm font-bold text-center hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200"
-    >
-      View Profile
-    </Link>
+    {token ? (
+      <Link
+        to={`/profile/${user._id}`}
+        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-sm font-bold text-center hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200"
+      >
+        View Profile
+      </Link>
+    ) : (
+      <button
+        onClick={() => navigate("/login")}
+        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-sm font-bold text-center hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200"
+      >
+        Login to View Profile
+      </button>
+    )}
   </div>
-);
+  );
+};
 
 export default UserCard;

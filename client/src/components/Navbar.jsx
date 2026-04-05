@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../hooks/useSocket";
+import { SOCKET_URL } from "../config";
 
 // Helper: Get initials from user name/email
 const getInitials = (userData) => {
@@ -24,7 +25,7 @@ const getInitials = (userData) => {
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (avatarPath.startsWith("http")) return avatarPath;
-  return `http://localhost:5000${avatarPath}`;
+  return `${SOCKET_URL}${avatarPath}`;
 };
 
 const Navbar = () => {

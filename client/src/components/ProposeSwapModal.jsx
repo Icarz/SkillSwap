@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE } from "../config";
 
 const ProposeSwapModal = ({ targetTransaction, onClose, onSuccess }) => {
   const { user, token } = useAuth();

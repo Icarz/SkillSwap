@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { io } from "socket.io-client";
+import { SOCKET_URL } from "../config";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const SocketContext = createContext();
@@ -18,7 +19,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io(SOCKET_URL, {
       auth: { token },
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,

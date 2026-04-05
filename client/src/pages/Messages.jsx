@@ -4,12 +4,12 @@ import { useAuth } from "../contexts/AuthContext";
 import { useSocket } from "../hooks/useSocket";
 import { Link } from "react-router-dom";
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE, SOCKET_URL } from "../config";
 
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (avatarPath.startsWith("http")) return avatarPath;
-  return `http://localhost:5000${avatarPath}`;
+  return `${SOCKET_URL}${avatarPath}`;
 };
 
 const getInitials = (user) => {

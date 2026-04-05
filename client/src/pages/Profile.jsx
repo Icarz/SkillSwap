@@ -21,7 +21,7 @@ const getInitials = (user) => {
   return "";
 };
 
-const API_BASE = "http://localhost:5000/api";
+import { API_BASE, SOCKET_URL } from "../config";
 
 const Profile = () => {
   const { token, user: authUser, updateUser } = useAuth();
@@ -62,7 +62,7 @@ const Profile = () => {
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith("http")) return avatarPath;
-    return `http://localhost:5000${avatarPath}`;
+    return `${SOCKET_URL}${avatarPath}`;
   };
 
   // Fetch categories on mount
@@ -392,177 +392,187 @@ const Profile = () => {
   if (!profile) return null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      {/* Profile Header */}
-      <div className="bg-white rounded-xl shadow p-8 flex flex-col md:flex-row items-center gap-8">
-        {/* Avatar Section */}
-        <div className="w-24 h-24 rounded-full bg-accent text-white flex items-center justify-center text-4xl font-bold overflow-hidden relative">
-          {avatarLoadError || !(profile.avatar || avatarPreview) ? (
-            getInitials(profile)
-          ) : (
-            <img
-              src={avatarPreview || getAvatarUrl(profile.avatar)}
-              alt="Avatar"
-              className="w-full h-full object-cover rounded-full"
-              onError={() => setAvatarLoadError(true)}
-              onLoad={() => setAvatarLoadError(false)}
-            />
-          )}
-          {isOwnProfile && (
-            <div
-              className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 flex items-center justify-center cursor-pointer transition-all"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <span className="text-white opacity-0 hover:opacity-100 text-sm">
-                Change
-              </span>
-            </div>
-          )}
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/10">
 
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarChange}
-          ref={fileInputRef}
-          disabled={avatarUploading}
-        />
-
-        {/* Profile Info */}
-        <div className="flex-1 w-full">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-primary mb-1 capitalize">
-              {profile.name}
-            </h1>
-            {isOwnProfile ? (
-              <button
-                className="px-3 py-1 bg-accent text-white rounded hover:bg-secondary text-sm"
-                onClick={() => setEditOpen(true)}
-              >
-                Edit Profile
-              </button>
-            ) : (
-              <button
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2"
-                onClick={() => setMessageModalOpen(true)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Send Message
-              </button>
-            )}
-          </div>
-
-          <div className="text-secondary mb-2">{profile.email}</div>
-          <div className="mb-4">
-            <span className="font-semibold text-secondary">Bio: </span>
-            <span className="text-gray-700">
-              {profile.bio || "No bio yet."}
-            </span>
-          </div>
-
-          {/* Skills & Learning Sections */}
-          <div className="mb-2">
-            <span className="font-semibold text-secondary">Skills:</span>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {profile.skills?.length > 0 ? (
-                profile.skills.map((skill) => (
-                  <span
-                    key={skill._id}
-                    className="bg-light text-secondary px-2 py-1 rounded text-xs flex items-center gap-1"
-                  >
-                    {skill.category?.icon && (
-                      <span className="text-base">{skill.category.icon}</span>
-                    )}
-                    {skill.name.replace(/-/g, " ")}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-400 text-xs">No skills added</span>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-2">
-            <span className="font-semibold text-secondary">Learning:</span>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {profile.learning?.length > 0 ? (
-                profile.learning.map((skill) => (
-                  <span
-                    key={skill._id}
-                    className="bg-light text-accent px-2 py-1 rounded text-xs flex items-center gap-1"
-                  >
-                    {skill.category?.icon && (
-                      <span className="text-base">{skill.category.icon}</span>
-                    )}
-                    {skill.name.replace(/-/g, " ")}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-400 text-xs">No learning goals</span>
-              )}
-            </div>
-          </div>
-
-          <div className="text-xs text-gray-500 mt-4">
-            Joined: {new Date(profile.createdAt).toLocaleDateString()}
-          </div>
-        </div>
+      {/* Hero Banner */}
+      <div className="h-44 bg-gradient-to-r from-secondary to-accent relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: "radial-gradient(circle, #A5D7E8 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
       </div>
 
-      {/* Reviews Section */}
-      <Reviews profile={profile} />
+      <div className="max-w-5xl mx-auto px-4">
 
-      {/* Transactions Section */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold text-primary mb-4">
-          {isOwnProfile ? "My Transactions" : `${profile.name}'s Transactions`}
-        </h2>
-        
-        {transactionsLoading ? (
-          <div className="text-center py-4">
-            <span className="text-accent animate-pulse">Loading transactions...</span>
-          </div>
-        ) : transactions.length > 0 ? (
-          <ul className="space-y-3">
-            {transactions.map((tx) => (
-              <TransactionItem
-                key={tx._id}
-                tx={tx}
-                actionLoading={actionLoading}
-                onAccept={handleAccept}
-                onComplete={handleComplete}
-                onCancel={isOwnProfile ? handleCancel : undefined}
-                onDelete={isOwnProfile ? handleDelete : undefined}
-                onAction={handleAction}
-                onRefresh={fetchUserTransactions}
+        {/* Profile Card — overlaps banner */}
+        <div className="relative -mt-14 mb-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+
+              {/* Avatar */}
+              <div
+                className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-4xl font-bold overflow-hidden shrink-0 shadow-xl border-4 border-white relative"
+                onClick={() => isOwnProfile && fileInputRef.current?.click()}
+                style={isOwnProfile ? { cursor: "pointer" } : {}}
+              >
+                {avatarLoadError || !(profile.avatar || avatarPreview) ? (
+                  getInitials(profile)
+                ) : (
+                  <img
+                    src={avatarPreview || getAvatarUrl(profile.avatar)}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarLoadError(true)}
+                    onLoad={() => setAvatarLoadError(false)}
+                  />
+                )}
+                {isOwnProfile && (
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/30 flex items-center justify-center transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-0 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+                ref={fileInputRef}
+                disabled={avatarUploading}
               />
-            ))}
-          </ul>
-        ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 px-6 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl mb-4 shadow-inner">
-              🔄
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-3 mb-1">
+                  <h1 className="text-2xl font-extrabold text-primary capitalize">{profile.name}</h1>
+                  {isOwnProfile ? (
+                    <button
+                      className="px-4 py-1.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm font-semibold hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      Edit Profile
+                    </button>
+                  ) : (
+                    <button
+                      className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                      onClick={() => setMessageModalOpen(true)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                      </svg>
+                      Send Message
+                    </button>
+                  )}
+                </div>
+                <p className="text-secondary/60 text-sm mb-2">{profile.email}</p>
+                <p className="text-gray-600 text-sm mb-4 max-w-lg">{profile.bio || "No bio yet."}</p>
+                <div className="flex flex-wrap gap-4 text-xs text-secondary/60">
+                  <span className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-accent" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    Joined {new Date(profile.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-primary mb-1">No transactions yet</h3>
-            <p className="text-secondary/50 text-sm max-w-xs">
-              {isOwnProfile
-                ? "Propose a skill swap to get started."
-                : `${profile.name} hasn't made any transactions yet.`}
-            </p>
           </div>
-        )}
+        </div>
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-12">
+
+          {/* Left sidebar */}
+          <div className="space-y-5">
+
+            {/* Teaches */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h3 className="font-bold text-emerald-600 text-xs uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <span>🎓</span> Teaches
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.skills?.length > 0 ? (
+                  profile.skills.map((skill) => (
+                    <span key={skill._id} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold capitalize flex items-center gap-1">
+                      {skill.category?.icon && <span>{skill.category.icon}</span>}
+                      {skill.name.replace(/-/g, " ")}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-xs italic">No skills added</span>
+                )}
+              </div>
+            </div>
+
+            {/* Wants to Learn */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h3 className="font-bold text-violet-600 text-xs uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <span>📚</span> Wants to Learn
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.learning?.length > 0 ? (
+                  profile.learning.map((skill) => (
+                    <span key={skill._id} className="bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full text-xs font-semibold capitalize flex items-center gap-1">
+                      {skill.category?.icon && <span>{skill.category.icon}</span>}
+                      {skill.name.replace(/-/g, " ")}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-xs italic">No learning goals</span>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right main — 2 columns wide */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Transactions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-base font-bold text-primary mb-4">
+                {isOwnProfile ? "My Transactions" : `${profile.name}'s Transactions`}
+              </h2>
+              {transactionsLoading ? (
+                <div className="text-center py-6">
+                  <span className="text-accent animate-pulse text-sm">Loading transactions...</span>
+                </div>
+              ) : transactions.length > 0 ? (
+                <ul className="space-y-3">
+                  {transactions.map((tx) => (
+                    <TransactionItem
+                      key={tx._id}
+                      tx={tx}
+                      actionLoading={actionLoading}
+                      onAccept={handleAccept}
+                      onComplete={handleComplete}
+                      onCancel={isOwnProfile ? handleCancel : undefined}
+                      onDelete={isOwnProfile ? handleDelete : undefined}
+                      onAction={handleAction}
+                      onRefresh={fetchUserTransactions}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <div className="py-10 flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-2xl mb-3 shadow-inner">
+                    🔄
+                  </div>
+                  <p className="text-sm font-semibold text-primary mb-1">No transactions yet</p>
+                  <p className="text-secondary/50 text-xs max-w-xs">
+                    {isOwnProfile ? "Propose a skill swap to get started." : `${profile.name} hasn't made any transactions yet.`}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Reviews */}
+            <Reviews profile={profile} />
+
+          </div>
+        </div>
       </div>
 
       {/* Send Message Modal */}

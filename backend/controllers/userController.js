@@ -231,8 +231,9 @@ const uploadAvatar = async (req, res) => {
 // Get all users
 const getAllUsers = async (req, res) => {
   try {
+    const excludeId = req.user?.id;
     const users = await populateUser(
-      User.find({ _id: { $ne: req.user.id } }).select("-password").limit(50)
+      User.find(excludeId ? { _id: { $ne: excludeId } } : {}).select("-password").limit(50)
     );
     const withRatings = await attachRatings(users.map((u) => u.toObject()));
     const result = await attachTransactionCounts(withRatings);
