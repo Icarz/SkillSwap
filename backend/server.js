@@ -8,7 +8,9 @@ const mongoose = require("mongoose");
 
 const app = require("./app");
 
-const ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:5174"];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:5173", "http://localhost:5174"];
 
 const server = http.createServer(app);
 
