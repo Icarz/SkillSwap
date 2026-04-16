@@ -51,7 +51,14 @@ const Profile = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageError, setMessageError] = useState("");
   const [messageSuccess, setMessageSuccess] = useState("");
-  const fileInputRef = useRef();
+
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [swapOfferedSkillId, setSwapOfferedSkillId] = useState("");
+  const [swapRequestedSkillId, setSwapRequestedSkillId] = useState("");
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapError, setSwapError] = useState("");
+  const [swapSuccess, setSwapSuccess] = useState("");
+  const fileInputRef = useRef(null);
 
   // Add state for transactions
   const [transactions, setTransactions] = useState([]);
@@ -332,6 +339,45 @@ const Profile = () => {
     }
   };
 
+  // Handle direct swap proposal
+  const handleProposeDirectSwap = async (e) => {
+    e.preventDefault();
+    if (!swapOfferedSkillId || !swapRequestedSkillId || swapLoading) return;
+    setSwapLoading(true);
+    setSwapError("");
+    setSwapSuccess("");
+    try {
+      await axios.post(
+        `${API_BASE}/transactions/propose-direct`,
+        {
+          targetUserId: profile._id,
+          offeredSkillId: swapOfferedSkillId,
+          requestedSkillId: swapRequestedSkillId,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSwapSuccess("Swap proposal sent!");
+      setSwapOfferedSkillId("");
+      setSwapRequestedSkillId("");
+      setTimeout(() => {
+        setSwapModalOpen(false);
+        setSwapSuccess("");
+      }, 1500);
+    } catch (err) {
+      setSwapError(err.response?.data?.error || "Failed to propose swap.");
+    } finally {
+      setSwapLoading(false);
+    }
+  };
+
+  const closeSwapModal = () => {
+    setSwapModalOpen(false);
+    setSwapOfferedSkillId("");
+    setSwapRequestedSkillId("");
+    setSwapError("");
+    setSwapSuccess("");
+  };
+
   // Handle sending message
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -455,15 +501,26 @@ const Profile = () => {
                       Edit Profile
                     </button>
                   ) : (
-                    <button
-                      className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
-                      onClick={() => setMessageModalOpen(true)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
-                      </svg>
-                      Send Message
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                        onClick={() => setMessageModalOpen(true)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                        </svg>
+                        Send Message
+                      </button>
+                      <button
+                        className="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                        onClick={() => setSwapModalOpen(true)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Propose Swap
+                      </button>
+                    </div>
                   )}
                 </div>
                 <p className="text-secondary/60 text-sm mb-2">{profile.email}</p>
@@ -669,6 +726,129 @@ const Profile = () => {
                     </>
                   ) : (
                     "Send Message"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Propose Swap Modal */}
+      {swapModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-primary">
+                Propose a Swap with {profile.name}
+              </h2>
+              <button
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-colors"
+                onClick={closeSwapModal}
+                aria-label="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleProposeDirectSwap} className="space-y-4">
+              {/* Skill to offer */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-secondary">
+                  Your skill to offer
+                </label>
+                {authUser?.skills?.length > 0 ? (
+                  <select
+                    value={swapOfferedSkillId}
+                    onChange={(e) => setSwapOfferedSkillId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                    disabled={swapLoading}
+                    required
+                  >
+                    <option value="">Choose one of your skills…</option>
+                    {authUser.skills.map((skill) => (
+                      <option key={skill._id} value={skill._id}>
+                        {skill.name?.replace(/-/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    You have no skills listed yet. Add skills to your profile first.
+                  </p>
+                )}
+              </div>
+
+              {/* Skill to request */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-secondary">
+                  Skill you want to learn from {profile.name}
+                </label>
+                {profile.learning?.length > 0 ? (
+                  <select
+                    value={swapRequestedSkillId}
+                    onChange={(e) => setSwapRequestedSkillId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                    disabled={swapLoading}
+                    required
+                  >
+                    <option value="">Choose a skill to request…</option>
+                    {profile.learning.map((skill) => (
+                      <option key={skill._id} value={skill._id}>
+                        {skill.name?.replace(/-/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                    {profile.name} hasn&apos;t listed any learning goals yet.
+                  </p>
+                )}
+              </div>
+
+              {swapError && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                  {swapError}
+                </div>
+              )}
+              {swapSuccess && (
+                <div className="p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100">
+                  {swapSuccess}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={closeSwapModal}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+                  disabled={swapLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-semibold text-sm disabled:opacity-60 flex items-center gap-2 transition-colors"
+                  disabled={
+                    swapLoading ||
+                    !swapOfferedSkillId ||
+                    !swapRequestedSkillId ||
+                    !authUser?.skills?.length ||
+                    !profile.learning?.length
+                  }
+                >
+                  {swapLoading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sending…
+                    </>
+                  ) : (
+                    "Send Proposal"
                   )}
                 </button>
               </div>

@@ -45,6 +45,16 @@ const transactionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Transaction",
   },
+  // --- DIRECT PROFILE SWAP FIELDS ---
+  // For swaps proposed directly from a user's profile page
+  targetUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  requestedSkill: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Skill",
+  },
   // --- END NEW FIELDS ---
   createdAt: {
     type: Date,

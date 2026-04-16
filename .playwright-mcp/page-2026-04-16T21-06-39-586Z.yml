@@ -1,0 +1,113 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e12] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: TU
+          - img [ref=e16]
+  - generic [ref=e18]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: My Activity
+        - heading "Transactions" [level=1] [ref=e24]
+      - button "New Transaction" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+        - text: New Transaction
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: 🔄
+          - generic [ref=e32]: "0"
+          - generic [ref=e33]: Total
+        - generic [ref=e34]:
+          - generic [ref=e35]: ⏳
+          - generic [ref=e36]: "0"
+          - generic [ref=e37]: Pending
+        - generic [ref=e38]:
+          - generic [ref=e39]: 🤝
+          - generic [ref=e40]: "0"
+          - generic [ref=e41]: Swap Proposed
+        - generic [ref=e42]:
+          - generic [ref=e43]: ✅
+          - generic [ref=e44]: "0"
+          - generic [ref=e45]: Completed
+      - generic [ref=e46]:
+        - paragraph [ref=e47]: Filter
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: Status
+            - combobox [ref=e51]:
+              - option "All Statuses" [selected]
+              - option "pending"
+              - option "accepted"
+              - option "completed"
+              - option "cancelled"
+              - option "proposed swap"
+              - option "accepted swap"
+              - option "rejected swap"
+          - generic [ref=e52]:
+            - generic [ref=e53]: Type
+            - combobox [ref=e54]:
+              - option "All Types" [selected]
+              - option "offer"
+              - option "request"
+      - generic [ref=e55]:
+        - heading "All Transactions" [level=2] [ref=e56]
+        - generic [ref=e57]:
+          - generic [ref=e58]: 📭
+          - paragraph [ref=e59]: No transactions found.
+      - generic [ref=e60]:
+        - link "← Dashboard" [ref=e61] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Explore Skills" [ref=e62] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Find Users" [ref=e63] [cursor=pointer]:
+          - /url: /explore-users
+  - contentinfo [ref=e64]:
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - link "SkillSwap SkillSwap" [ref=e68] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e69]
+            - generic [ref=e70]: SkillSwap
+          - paragraph [ref=e71]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e72]:
+          - paragraph [ref=e73]: Explore
+          - list [ref=e74]:
+            - listitem [ref=e75]:
+              - link "Explore Skills" [ref=e76] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e77]:
+              - link "Find Users" [ref=e78] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e79]:
+          - paragraph [ref=e80]: Account
+          - list [ref=e81]:
+            - listitem [ref=e82]:
+              - link "Dashboard" [ref=e83] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e84]:
+              - link "My Profile" [ref=e85] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e86]:
+              - link "Transactions" [ref=e87] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e88]:
+              - link "Messages" [ref=e89] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e90]:
+        - paragraph [ref=e91]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e92]: Made with ♥ for skill enthusiasts worldwide

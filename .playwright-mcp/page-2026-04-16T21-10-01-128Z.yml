@@ -1,0 +1,90 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e12] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: TU
+          - img [ref=e16]
+  - generic [ref=e18]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: Inbox
+        - heading "Messages" [level=1] [ref=e24]
+      - generic [ref=e25]: Online
+    - generic [ref=e28]:
+      - complementary [ref=e29]:
+        - generic [ref=e30]:
+          - heading "Conversations" [level=2] [ref=e31]
+          - paragraph [ref=e32]: 1 thread
+        - list [ref=e69]:
+          - listitem [ref=e70] [cursor=pointer]:
+            - img "Med Reghay" [ref=e72]
+            - generic [ref=e73]:
+              - generic [ref=e74]: Med Reghay
+              - generic [ref=e75]: Hey Med! I'd love to swap skills. I can help you learn Python and would love to learn JavaScript from you!
+            - generic [ref=e76]: 16/04/2026
+      - main [ref=e35]:
+        - generic [ref=e36]:
+          - img "Med Reghay" [ref=e78]
+          - generic [ref=e79]:
+            - generic [ref=e80]: Med Reghay
+            - generic [ref=e81]: Active conversation
+          - link "View Profile" [ref=e82] [cursor=pointer]:
+            - /url: /profile/69dbd03a76d5f60179caa5f2
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - paragraph [ref=e86]: Hey Med! I'd love to swap skills. I can help you learn Python and would love to learn JavaScript from you!
+            - paragraph [ref=e87]: 22:09
+          - generic [ref=e88]: TU
+        - generic [ref=e90]:
+          - textbox "Type your message…" [ref=e91]
+          - button [disabled] [ref=e92]:
+            - img [ref=e93]
+  - contentinfo [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - link "SkillSwap SkillSwap" [ref=e44] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e45]
+            - generic [ref=e46]: SkillSwap
+          - paragraph [ref=e47]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Explore
+          - list [ref=e50]:
+            - listitem [ref=e51]:
+              - link "Explore Skills" [ref=e52] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e53]:
+              - link "Find Users" [ref=e54] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e55]:
+          - paragraph [ref=e56]: Account
+          - list [ref=e57]:
+            - listitem [ref=e58]:
+              - link "Dashboard" [ref=e59] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e60]:
+              - link "My Profile" [ref=e61] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e62]:
+              - link "Transactions" [ref=e63] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e64]:
+              - link "Messages" [ref=e65] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e66]:
+        - paragraph [ref=e67]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e68]: Made with ♥ for skill enthusiasts worldwide

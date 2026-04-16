@@ -1,0 +1,79 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Login" [ref=e11] [cursor=pointer]:
+          - /url: /login
+        - link "Register" [ref=e12] [cursor=pointer]:
+          - /url: /register
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - img "SkillSwap" [ref=e16]
+      - heading "Create your account" [level=1] [ref=e17]
+      - paragraph [ref=e18]: Join thousands of skill sharers for free
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Full Name
+          - generic [ref=e25]:
+            - img [ref=e27]
+            - textbox "Your name" [ref=e29]
+        - generic [ref=e30]:
+          - generic [ref=e31]: Email
+          - generic [ref=e32]:
+            - img [ref=e34]
+            - textbox "you@example.com" [ref=e37]
+        - generic [ref=e38]:
+          - generic [ref=e39]: Password
+          - generic [ref=e40]:
+            - img [ref=e42]
+            - textbox "••••••••" [ref=e44]
+        - button "Create Account" [ref=e45] [cursor=pointer]
+      - paragraph [ref=e46]:
+        - text: Already have an account?
+        - link "Sign in" [ref=e47] [cursor=pointer]:
+          - /url: /login
+  - contentinfo [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - link "SkillSwap SkillSwap" [ref=e52] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e53]
+            - generic [ref=e54]: SkillSwap
+          - paragraph [ref=e55]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Explore
+          - list [ref=e58]:
+            - listitem [ref=e59]:
+              - link "Explore Skills" [ref=e60] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e61]:
+              - link "Find Users" [ref=e62] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Account
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link "Dashboard" [ref=e67] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e68]:
+              - link "My Profile" [ref=e69] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e70]:
+              - link "Transactions" [ref=e71] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e72]:
+              - link "Messages" [ref=e73] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e74]:
+        - paragraph [ref=e75]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e76]: Made with ♥ for skill enthusiasts worldwide

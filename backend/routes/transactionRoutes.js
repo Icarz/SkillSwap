@@ -10,10 +10,11 @@ const {
 } = require("../controllers/transactionController");
 
 const authMiddleware = require("../middleware/authMiddleware");
-const { proposeSwap } = require("../controllers/swapController");
+const { proposeSwap, proposeDirectSwap } = require("../controllers/swapController");
 
 router.use(authMiddleware);
 
+router.post("/propose-direct", proposeDirectSwap);
 router.post("/", createTransaction);
 router.get("/filter", filterMyTransactions);
 router.get("/user/:userId", getPublicUserTransactions);

@@ -1,0 +1,102 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e12] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: TU
+          - img [ref=e16]
+  - generic [ref=e21]:
+    - generic [ref=e24]:
+      - generic [ref=e25] [cursor=pointer]:
+        - text: TU
+        - img [ref=e27]
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - heading "Test User" [level=1] [ref=e32]
+          - button "Edit Profile" [ref=e33] [cursor=pointer]
+        - paragraph [ref=e34]: testuser@playwright.com
+        - paragraph [ref=e35]: No bio yet.
+        - generic [ref=e37]:
+          - img [ref=e38]
+          - text: Joined 16/04/2026
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - heading "🎓 Teaches" [level=3] [ref=e43]:
+            - generic [ref=e44]: 🎓
+            - text: Teaches
+          - generic [ref=e46]: No skills added
+        - generic [ref=e47]:
+          - heading "📚 Wants to Learn" [level=3] [ref=e48]:
+            - generic [ref=e49]: 📚
+            - text: Wants to Learn
+          - generic [ref=e51]: No learning goals
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - heading "My Transactions" [level=2] [ref=e54]
+          - generic [ref=e55]:
+            - generic [ref=e56]: 🔄
+            - paragraph [ref=e57]: No transactions yet
+            - paragraph [ref=e58]: Propose a skill swap to get started.
+        - generic [ref=e59]:
+          - heading "Reviews" [level=2] [ref=e60]
+          - generic [ref=e61]: No reviews yet.
+          - generic [ref=e62]:
+            - heading "Leave a Review" [level=3] [ref=e63]
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - generic [ref=e66] [cursor=pointer]: ★
+                - generic [ref=e67] [cursor=pointer]: ★
+                - generic [ref=e68] [cursor=pointer]: ★
+                - generic [ref=e69] [cursor=pointer]: ★
+                - generic [ref=e70] [cursor=pointer]: ★
+              - textbox "Write your review..." [ref=e71]
+              - button "Submit Review" [ref=e72] [cursor=pointer]
+  - contentinfo [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - link "SkillSwap SkillSwap" [ref=e77] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e78]
+            - generic [ref=e79]: SkillSwap
+          - paragraph [ref=e80]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e81]:
+          - paragraph [ref=e82]: Explore
+          - list [ref=e83]:
+            - listitem [ref=e84]:
+              - link "Explore Skills" [ref=e85] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e86]:
+              - link "Find Users" [ref=e87] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e88]:
+          - paragraph [ref=e89]: Account
+          - list [ref=e90]:
+            - listitem [ref=e91]:
+              - link "Dashboard" [ref=e92] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e93]:
+              - link "My Profile" [ref=e94] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e95]:
+              - link "Transactions" [ref=e96] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e97]:
+              - link "Messages" [ref=e98] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e99]:
+        - paragraph [ref=e100]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e101]: Made with ♥ for skill enthusiasts worldwide

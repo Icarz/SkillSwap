@@ -1,0 +1,113 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e12] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: TU
+          - img [ref=e16]
+  - generic [ref=e116]:
+    - generic [ref=e119]:
+      - img "Avatar" [ref=e121]
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - heading "Med Reghay" [level=1] [ref=e124]
+          - button "Send Message" [ref=e125] [cursor=pointer]:
+            - img [ref=e126]
+            - text: Send Message
+        - paragraph [ref=e128]: med@gmail.com
+        - paragraph [ref=e129]: Software developer , i want to share a learn new skills
+        - generic [ref=e131]:
+          - img [ref=e132]
+          - text: Joined 12/04/2026
+    - generic [ref=e134]:
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - heading "🎓 Teaches" [level=3] [ref=e137]:
+            - generic [ref=e138]: 🎓
+            - text: Teaches
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - generic [ref=e141]: 🌐
+              - text: javascrip
+            - generic [ref=e142]:
+              - generic [ref=e143]: 🌐
+              - text: reacjs
+            - generic [ref=e144]:
+              - generic [ref=e145]: 🌐
+              - text: html
+        - generic [ref=e146]:
+          - heading "📚 Wants to Learn" [level=3] [ref=e147]:
+            - generic [ref=e148]: 📚
+            - text: Wants to Learn
+          - generic [ref=e150]:
+            - generic [ref=e151]: 🎨
+            - text: photoshop
+      - generic [ref=e152]:
+        - generic [ref=e153]:
+          - heading "Med Reghay's Transactions" [level=2] [ref=e154]
+          - generic [ref=e155]:
+            - generic [ref=e156]: 🔄
+            - paragraph [ref=e157]: No transactions yet
+            - paragraph [ref=e158]: Med Reghay hasn't made any transactions yet.
+        - generic [ref=e159]:
+          - heading "Reviews" [level=2] [ref=e160]
+          - generic [ref=e161]: No reviews yet.
+          - generic [ref=e162]:
+            - heading "Leave a Review" [level=3] [ref=e163]
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166] [cursor=pointer]: ★
+                - generic [ref=e167] [cursor=pointer]: ★
+                - generic [ref=e168] [cursor=pointer]: ★
+                - generic [ref=e169] [cursor=pointer]: ★
+                - generic [ref=e170] [cursor=pointer]: ★
+              - textbox "Write your review..." [ref=e171]
+              - button "Submit Review" [ref=e172] [cursor=pointer]
+  - contentinfo [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - link "SkillSwap SkillSwap" [ref=e38] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e39]
+            - generic [ref=e40]: SkillSwap
+          - paragraph [ref=e41]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e42]:
+          - paragraph [ref=e43]: Explore
+          - list [ref=e44]:
+            - listitem [ref=e45]:
+              - link "Explore Skills" [ref=e46] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e47]:
+              - link "Find Users" [ref=e48] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e49]:
+          - paragraph [ref=e50]: Account
+          - list [ref=e51]:
+            - listitem [ref=e52]:
+              - link "Dashboard" [ref=e53] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e54]:
+              - link "My Profile" [ref=e55] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e56]:
+              - link "Transactions" [ref=e57] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e58]:
+              - link "Messages" [ref=e59] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e60]:
+        - paragraph [ref=e61]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e62]: Made with ♥ for skill enthusiasts worldwide

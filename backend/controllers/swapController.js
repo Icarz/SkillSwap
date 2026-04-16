@@ -1,5 +1,6 @@
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const Skill = require("../models/Skill");
 const { emitNotification } = require("../config/socket");
 
 // ✅ Propose a skill swap
@@ -92,4 +93,68 @@ const proposeSwap = async (req, res) => {
   }
 };
 
-module.exports = { proposeSwap };
+// ✅ Propose a direct skill swap from a user's profile page
+const proposeDirectSwap = async (req, res) => {
+  const { targetUserId, offeredSkillId, requestedSkillId } = req.body;
+
+  if (!targetUserId || !offeredSkillId || !requestedSkillId) {
+    return res.status(400).json({ error: "targetUserId, offeredSkillId, and requestedSkillId are required." });
+  }
+
+  if (targetUserId === req.user.id) {
+    return res.status(400).json({ error: "You cannot propose a swap with yourself." });
+  }
+
+  try {
+    const [targetUser, offeredSkill, requestedSkill] = await Promise.all([
+      User.findById(targetUserId).select("name"),
+      Skill.findById(offeredSkillId).select("name"),
+      Skill.findById(requestedSkillId).select("name"),
+    ]);
+
+    if (!targetUser)    return res.status(404).json({ error: "Target user not found." });
+    if (!offeredSkill)  return res.status(404).json({ error: "Offered skill not found." });
+    if (!requestedSkill) return res.status(404).json({ error: "Requested skill not found." });
+
+    // Prevent duplicate pending proposals from same proposer to same target user
+    const existing = await Transaction.findOne({
+      user: req.user.id,
+      targetUser: targetUserId,
+      status: "proposed-swap",
+    });
+    if (existing) {
+      return res.status(400).json({ error: "You already have a pending swap proposal with this user." });
+    }
+
+    const proposal = new Transaction({
+      user: req.user.id,
+      skill: offeredSkillId,
+      type: "offer",
+      status: "proposed-swap",
+      targetUser: targetUserId,
+      requestedSkill: requestedSkillId,
+    });
+
+    await proposal.save();
+    await proposal.populate([
+      { path: "skill", select: "name" },
+      { path: "requestedSkill", select: "name" },
+      { path: "targetUser", select: "name" },
+    ]);
+
+    const proposer = await User.findById(req.user.id).select("name");
+    emitNotification(req, {
+      userId: targetUserId,
+      type: "swap-proposed",
+      message: `${proposer.name} proposed a swap: their ${proposal.skill.name} for your ${proposal.requestedSkill.name}.`,
+      transactionId: proposal._id,
+    });
+
+    res.status(201).json(proposal);
+  } catch (err) {
+    console.error("Error proposing direct swap:", err);
+    res.status(500).json({ error: "Failed to propose swap." });
+  }
+};
+
+module.exports = { proposeSwap, proposeDirectSwap };

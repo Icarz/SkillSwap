@@ -1,0 +1,158 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e12] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: TU
+          - img [ref=e16]
+  - generic [ref=e18]:
+    - generic [ref=e21]:
+      - generic [ref=e22]: 🎓 Browse all skill categories
+      - heading "Explore Skills" [level=1] [ref=e23]
+      - paragraph [ref=e24]: Discover what our community can teach — click any category to see available skills.
+    - generic [ref=e26]:
+      - button "🖥️ 3d modeling" [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: 🖥️
+        - generic [ref=e30]:
+          - generic [ref=e31]: 3d modeling
+          - img [ref=e32]
+      - button "🧠 ai ml" [ref=e35] [cursor=pointer]:
+        - generic [ref=e36]: 🧠
+        - generic [ref=e37]:
+          - generic [ref=e38]: ai ml
+          - img [ref=e39]
+      - button "🛠️ devops" [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]: 🛠️
+        - generic [ref=e44]:
+          - generic [ref=e45]: devops
+          - img [ref=e46]
+      - button "🇬🇧 english" [ref=e49] [cursor=pointer]:
+        - generic [ref=e50]: 🇬🇧
+        - generic [ref=e51]:
+          - generic [ref=e52]: english
+          - img [ref=e53]
+      - button "🚀 entrepreneurship" [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]: 🚀
+        - generic [ref=e58]:
+          - generic [ref=e59]: entrepreneurship
+          - img [ref=e60]
+      - button "💰 finance" [ref=e63] [cursor=pointer]:
+        - generic [ref=e64]: 💰
+        - generic [ref=e65]:
+          - generic [ref=e66]: finance
+          - img [ref=e67]
+      - button "🎨 graphic design" [ref=e70] [cursor=pointer]:
+        - generic [ref=e71]: 🎨
+        - generic [ref=e72]:
+          - generic [ref=e73]: graphic design
+          - img [ref=e74]
+      - button "🎸 guitar" [ref=e77] [cursor=pointer]:
+        - generic [ref=e78]: 🎸
+        - generic [ref=e79]:
+          - generic [ref=e80]: guitar
+          - img [ref=e81]
+      - button "🇯🇵 japanese" [ref=e84] [cursor=pointer]:
+        - generic [ref=e85]: 🇯🇵
+        - generic [ref=e86]:
+          - generic [ref=e87]: japanese
+          - img [ref=e88]
+      - button "🧶 knitting" [ref=e91] [cursor=pointer]:
+        - generic [ref=e92]: 🧶
+        - generic [ref=e93]:
+          - generic [ref=e94]: knitting
+          - img [ref=e95]
+      - button "📈 marketing" [ref=e98] [cursor=pointer]:
+        - generic [ref=e99]: 📈
+        - generic [ref=e100]:
+          - generic [ref=e101]: marketing
+          - img [ref=e102]
+      - button "📱 mobile dev" [ref=e105] [cursor=pointer]:
+        - generic [ref=e106]: 📱
+        - generic [ref=e107]:
+          - generic [ref=e108]: mobile dev
+          - img [ref=e109]
+      - button "📷 photography" [ref=e112] [cursor=pointer]:
+        - generic [ref=e113]: 📷
+        - generic [ref=e114]:
+          - generic [ref=e115]: photography
+          - img [ref=e116]
+      - button "🎹 piano" [ref=e119] [cursor=pointer]:
+        - generic [ref=e120]: 🎹
+        - generic [ref=e121]:
+          - generic [ref=e122]: piano
+          - img [ref=e123]
+      - generic [ref=e125]:
+        - button "💻 programming" [active] [ref=e126] [cursor=pointer]:
+          - generic [ref=e127]: 💻
+          - generic [ref=e128]:
+            - generic [ref=e129]: programming
+            - img [ref=e130]
+        - generic [ref=e191]: 💻 python
+      - button "🇪🇸 spanish" [ref=e133] [cursor=pointer]:
+        - generic [ref=e134]: 🇪🇸
+        - generic [ref=e135]:
+          - generic [ref=e136]: spanish
+          - img [ref=e137]
+      - button "🎬 video editing" [ref=e140] [cursor=pointer]:
+        - generic [ref=e141]: 🎬
+        - generic [ref=e142]:
+          - generic [ref=e143]: video editing
+          - img [ref=e144]
+      - button "🌐 web development" [ref=e147] [cursor=pointer]:
+        - generic [ref=e148]: 🌐
+        - generic [ref=e149]:
+          - generic [ref=e150]: web development
+          - img [ref=e151]
+      - button "🪵 woodworking" [ref=e154] [cursor=pointer]:
+        - generic [ref=e155]: 🪵
+        - generic [ref=e156]:
+          - generic [ref=e157]: woodworking
+          - img [ref=e158]
+  - contentinfo [ref=e160]:
+    - generic [ref=e161]:
+      - generic [ref=e162]:
+        - generic [ref=e163]:
+          - link "SkillSwap SkillSwap" [ref=e164] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e165]
+            - generic [ref=e166]: SkillSwap
+          - paragraph [ref=e167]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e168]:
+          - paragraph [ref=e169]: Explore
+          - list [ref=e170]:
+            - listitem [ref=e171]:
+              - link "Explore Skills" [ref=e172] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e173]:
+              - link "Find Users" [ref=e174] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e175]:
+          - paragraph [ref=e176]: Account
+          - list [ref=e177]:
+            - listitem [ref=e178]:
+              - link "Dashboard" [ref=e179] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e180]:
+              - link "My Profile" [ref=e181] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e182]:
+              - link "Transactions" [ref=e183] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e184]:
+              - link "Messages" [ref=e185] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e186]:
+        - paragraph [ref=e187]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e188]: Made with ♥ for skill enthusiasts worldwide

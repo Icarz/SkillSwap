@@ -46,10 +46,15 @@ const TransactionItem = ({
     !tx.acceptor &&
     tx.status === "pending";
 
-  const isUsersTransaction = tx.user?._id === user?.id;
-  const isProposedSwap     = tx.status === "proposed-swap";
-  const isAcceptedSwap     = tx.status === "accepted-swap";
-  const isLoading          = actionLoading[tx._id];
+  const isUsersTransaction    = tx.user?._id === user?.id;
+  const isProposedSwap        = tx.status === "proposed-swap";
+  const isAcceptedSwap        = tx.status === "accepted-swap";
+  const isLoading             = actionLoading[tx._id];
+
+  // Direct profile swap proposals
+  const isDirectProposal      = !!tx.targetUser && !tx.linkedTransaction;
+  const isDirectProposalForMe = isDirectProposal && tx.targetUser?._id === user?.id && isProposedSwap;
+  const isMyDirectProposal    = isDirectProposal && isUsersTransaction && isProposedSwap;
 
   const statusCfg = statusConfig[tx.status] ?? { label: tx.status, classes: "bg-gray-100 text-gray-500 border border-gray-200" };
   const typeCfg   = typeConfig[tx.type]     ?? { label: tx.type,   classes: "bg-gray-100 text-gray-500 border border-gray-200" };
@@ -158,7 +163,7 @@ const TransactionItem = ({
           </div>
         )}
 
-        {/* Swap banner */}
+        {/* Linked swap banner */}
         {tx.linkedTransaction && (
           <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-700 font-medium">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,6 +172,23 @@ const TransactionItem = ({
             {isProposedSwap  && "Swap proposal pending response"}
             {isAcceptedSwap  && "Swap accepted — both parties agreed"}
             {tx.status === "rejected-swap" && "Swap was declined"}
+          </div>
+        )}
+
+        {/* Direct profile swap banner */}
+        {isDirectProposal && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-violet-50 border border-violet-100 rounded-xl text-xs text-violet-700 font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <span>
+              Direct swap: <strong>{tx.skill?.name?.replace(/-/g, " ")}</strong>
+              {tx.requestedSkill && <> → <strong>{tx.requestedSkill.name?.replace(/-/g, " ")}</strong></>}
+              {isDirectProposalForMe && <span className="ml-1 text-violet-500">· {tx.user?.name} wants to swap with you</span>}
+              {isMyDirectProposal    && <span className="ml-1 text-violet-500">· Sent to {tx.targetUser?.name}</span>}
+              {tx.status === "accepted" && <span className="ml-1 text-teal-600">· Accepted</span>}
+              {tx.status === "cancelled" && <span className="ml-1 text-gray-500">· Declined</span>}
+            </span>
           </div>
         )}
 
@@ -185,8 +207,36 @@ const TransactionItem = ({
               </button>
             )}
 
+            {/* Accept / Decline direct swap proposal */}
+            {isDirectProposalForMe && onAccept && onCancel && (
+              <>
+                <button
+                  className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+                  onClick={() => onAccept(tx._id)}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing…" : "Accept Swap"}
+                </button>
+                <button
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
+                  onClick={() => onCancel(tx._id)}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing…" : "Decline"}
+                </button>
+              </>
+            )}
+
+            {/* Waiting indicator for my direct proposal */}
+            {isMyDirectProposal && (
+              <span className="flex items-center gap-1.5 text-xs text-secondary/50 italic">
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                Waiting for {tx.targetUser?.name}…
+              </span>
+            )}
+
             {/* Accept / Reject Swap */}
-            {isProposedSwap && isUsersTransaction && onAction && (
+            {isProposedSwap && isUsersTransaction && !isDirectProposal && onAction && (
               <>
                 <button
                   className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
@@ -205,8 +255,8 @@ const TransactionItem = ({
               </>
             )}
 
-            {/* Waiting indicator */}
-            {isProposedSwap && !isUsersTransaction && (
+            {/* Waiting indicator (linked swap) */}
+            {isProposedSwap && !isUsersTransaction && !isDirectProposal && (
               <span className="flex items-center gap-1.5 text-xs text-secondary/50 italic">
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
                 Waiting for response…

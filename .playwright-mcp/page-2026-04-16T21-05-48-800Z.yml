@@ -1,0 +1,135 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "SkillSwap Logo SkillSwap" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "SkillSwap Logo" [ref=e6]
+        - generic [ref=e7]: SkillSwap
+      - generic [ref=e8]:
+        - link "Explore Skills" [ref=e9] [cursor=pointer]:
+          - /url: /explore-skills
+        - link "Explore Users" [ref=e10] [cursor=pointer]:
+          - /url: /explore-users
+        - link "Dashboard" [ref=e77] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Profile" [ref=e78] [cursor=pointer]:
+          - /url: /profile
+        - button "User menu" [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]: TU
+          - img [ref=e82]
+  - generic [ref=e84]:
+    - generic [ref=e87]:
+      - generic [ref=e88]: TU
+      - generic [ref=e89]:
+        - paragraph [ref=e90]: Dashboard
+        - heading "Welcome back, Test User!" [level=1] [ref=e91]
+        - paragraph [ref=e92]: testuser@playwright.com
+    - generic [ref=e93]:
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - generic [ref=e97]: 🎯
+          - generic [ref=e98]: "0"
+          - generic [ref=e99]: Skills
+        - generic [ref=e100]:
+          - generic [ref=e102]: 📚
+          - generic [ref=e103]: "0"
+          - generic [ref=e104]: Learning
+        - generic [ref=e105]:
+          - generic [ref=e107]: 🔄
+          - generic [ref=e108]: "0"
+          - generic [ref=e109]: Transactions
+        - generic [ref=e111]:
+          - generic [ref=e113]: 💬
+          - generic [ref=e114]: "0"
+          - generic [ref=e115]: Messages
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - heading "Transaction Overview" [level=2] [ref=e118]
+          - paragraph [ref=e119]: Breakdown of your transaction statuses
+          - img [ref=e120]
+        - generic [ref=e121]:
+          - heading "Quick Links" [level=2] [ref=e122]
+          - paragraph [ref=e123]: Navigate to key sections
+          - generic [ref=e124]:
+            - link "Explore Skills" [ref=e125] [cursor=pointer]:
+              - /url: /explore-skills
+              - generic [ref=e126]: Explore Skills
+              - img [ref=e127]
+            - link "Find Users" [ref=e129] [cursor=pointer]:
+              - /url: /explore-users
+              - generic [ref=e130]: Find Users
+              - img [ref=e131]
+            - link "My Profile" [ref=e133] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=e134]: My Profile
+              - img [ref=e135]
+            - link "My Transactions" [ref=e137] [cursor=pointer]:
+              - /url: /transactions
+              - generic [ref=e138]: My Transactions
+              - img [ref=e139]
+            - link "My Messages" [ref=e141] [cursor=pointer]:
+              - /url: /messages
+              - generic [ref=e143]: My Messages
+              - img [ref=e144]
+      - generic [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "Recent Transactions" [level=2] [ref=e150]
+              - paragraph [ref=e151]: Your latest activity
+            - combobox [ref=e152]:
+              - option "All" [selected]
+              - option "Pending"
+              - option "Accepted"
+              - option "Completed"
+              - option "Cancelled"
+          - paragraph [ref=e153]: No transactions yet.
+          - link "View all transactions" [ref=e155] [cursor=pointer]:
+            - /url: /transactions
+            - text: View all transactions
+            - img [ref=e156]
+        - generic [ref=e158]:
+          - generic [ref=e160]:
+            - heading "Recent Messages" [level=2] [ref=e161]
+            - paragraph [ref=e162]: Your latest conversations
+          - paragraph [ref=e163]: No messages yet.
+          - link "View all messages" [ref=e165] [cursor=pointer]:
+            - /url: /messages
+            - text: View all messages
+            - img [ref=e166]
+  - contentinfo [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - link "SkillSwap SkillSwap" [ref=e52] [cursor=pointer]:
+            - /url: /
+            - img "SkillSwap" [ref=e53]
+            - generic [ref=e54]: SkillSwap
+          - paragraph [ref=e55]: Connect with people who want to learn what you know — and teach what you want to learn. Swap skills, grow together.
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Explore
+          - list [ref=e58]:
+            - listitem [ref=e59]:
+              - link "Explore Skills" [ref=e60] [cursor=pointer]:
+                - /url: /explore-skills
+            - listitem [ref=e61]:
+              - link "Find Users" [ref=e62] [cursor=pointer]:
+                - /url: /explore-users
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Account
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link "Dashboard" [ref=e67] [cursor=pointer]:
+                - /url: /dashboard
+            - listitem [ref=e68]:
+              - link "My Profile" [ref=e69] [cursor=pointer]:
+                - /url: /profile
+            - listitem [ref=e70]:
+              - link "Transactions" [ref=e71] [cursor=pointer]:
+                - /url: /transactions
+            - listitem [ref=e72]:
+              - link "Messages" [ref=e73] [cursor=pointer]:
+                - /url: /messages
+      - generic [ref=e74]:
+        - paragraph [ref=e75]: © 2026 SkillSwap — Icarus & Co. All rights reserved.
+        - paragraph [ref=e76]: Made with ♥ for skill enthusiasts worldwide

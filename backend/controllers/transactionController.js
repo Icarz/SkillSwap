@@ -40,6 +40,7 @@ const getMyTransactions = async (req, res) => {
       $or: [
         { user: req.user.id },
         { acceptor: req.user.id },
+        { targetUser: req.user.id },
       ],
     };
 
@@ -49,6 +50,8 @@ const getMyTransactions = async (req, res) => {
         .populate("acceptor", "name email avatar")
         .populate("skill", "name category")
         .populate("linkedTransaction")
+        .populate("targetUser", "name email avatar")
+        .populate("requestedSkill", "name")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -192,7 +195,7 @@ const filterMyTransactions = async (req, res) => {
   }
 
   const query = {
-    $or: [{ user: req.user.id }, { acceptor: req.user.id }],
+    $or: [{ user: req.user.id }, { acceptor: req.user.id }, { targetUser: req.user.id }],
     ...(andFilters.length > 0 ? { $and: andFilters } : {}),
   };
 
@@ -207,6 +210,8 @@ const filterMyTransactions = async (req, res) => {
         .populate("acceptor", "name email avatar")
         .populate("skill")
         .populate("linkedTransaction")
+        .populate("targetUser", "name email avatar")
+        .populate("requestedSkill", "name")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
